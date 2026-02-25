@@ -13,9 +13,9 @@
     --border: #e2dfd8;
     --accent: #c8392b;
     --accent2: #1a1a2e;
-    --text: #1c1c1c;
-    --text2: #6b6560;
-    --text3: #9e9891;
+    --text: #0a0a0a;
+    --text2: #3a3530;
+    --text3: #6b6560;
     --shadow: 0 2px 12px rgba(0,0,0,0.07);
     --radius: 10px;
   }
@@ -1323,29 +1323,29 @@ function buildPreviewHTML(po) {
 
   const itemsHTML = (po.items || []).filter(i => i.desc).map((item, idx) => `
     <tr>
-      <td style="border:1px solid #ccc;padding:6px 8px;text-align:center;">${idx + 1}</td>
-      <td style="border:1px solid #ccc;padding:6px 8px;">${item.desc}${item.code ? '<br><span style="font-size:9px;color:#999;font-family:monospace;">' + item.code + '</span>' : ''}</td>
-      <td style="border:1px solid #ccc;padding:6px 8px;text-align:center;">${item.qty}</td>
-      <td style="border:1px solid #ccc;padding:6px 8px;text-align:center;">${item.unit}</td>
-      <td style="border:1px solid #ccc;padding:6px 8px;text-align:right;font-family:monospace;">( ${formatNum(item.price)} )</td>
-      <td style="border:1px solid #ccc;padding:6px 8px;text-align:right;font-family:monospace;font-weight:600;">( ${formatNum(item.amount)} )</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;">${idx + 1}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;color:#000;">${item.desc}${item.code ? '<br><span style="font-size:9px;color:#333;font-family:monospace;font-weight:600;">' + item.code + '</span>' : ''}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;">${item.qty}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;">${item.unit}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;color:#000;">( ${formatNum(item.price)} )</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;">( ${formatNum(item.amount)} )</td>
     </tr>
   `).join('');
 
   const filledCount = (po.items || []).filter(i => i.desc).length;
   // No empty filler rows - only show items with content
 
-  const vatLabel = vatOption === 'add' ? `<tr><td colspan="5" style="border:1px solid #ccc;padding:5px 8px;text-align:right;font-size:11px;">12% VAT</td><td style="border:1px solid #ccc;padding:5px 8px;text-align:right;font-family:monospace;">( ${formatNum(vatAmount)} )</td></tr>` : '';
+  const vatLabel = vatOption === 'add' ? `<tr><td colspan="5" style="border:1.5px solid #555;padding:5px 8px;text-align:right;font-size:11px;font-weight:600;color:#000;">12% VAT</td><td style="border:1.5px solid #555;padding:5px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;">( ${formatNum(vatAmount)} )</td></tr>` : '';
 
   return `
-    <div id="po-print-area" style="font-family:'DM Sans',Arial,sans-serif;font-size:12px;color:#1c1c1c;line-height:1.5;background:#fff;padding:28px 32px;max-width:780px;margin:0 auto;">
+    <div id="po-print-area" style="font-family:'DM Sans',Arial,sans-serif;font-size:12px;color:#000000;line-height:1.5;background:#fff;padding:28px 32px;max-width:780px;margin:0 auto;">
 
       <!-- HEADER: Logo + Company Info + PO Title -->
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
         <div style="display:flex;align-items:center;gap:12px;">
           <img src="${window.LOGO_B64}" style="height:72px;width:72px;object-fit:contain;" alt="JVT Logo">
           <div>
-            <div style="font-size:10px;color:#555;line-height:1.8;">
+            <div style="font-size:11px;color:#1a1a1a;line-height:1.9;font-weight:500;">
               23 Katipunan Ave., California Village<br>
               San Bartolome, Novaliches, Quezon City<br>
               jvtcorp20@gmail.com &nbsp;|&nbsp; TIN 010-461-994
@@ -1354,48 +1354,48 @@ function buildPreviewHTML(po) {
         </div>
         <div style="text-align:right;">
           <div style="font-weight:800;font-size:20px;color:#c8392b;letter-spacing:2px;font-style:italic;">PURCHASE ORDER</div>
-          <div style="font-size:10px;color:#555;margin-top:2px;">PO NO.</div>
-          <div style="font-family:monospace;font-size:17px;font-weight:700;color:#1a1a2e;">${po.poNumber}</div>
-          <div style="font-size:10px;color:#555;margin-top:2px;">${formatDateDisplay(po.date)}</div>
+          <div style="font-size:10px;color:#333;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">PO NO.</div>
+          <div style="font-family:monospace;font-size:17px;font-weight:700;color:#000;">${po.poNumber}</div>
+          <div style="font-size:11px;color:#333;margin-top:2px;font-weight:500;">${formatDateDisplay(po.date)}</div>
         </div>
       </div>
 
       <!-- SUPPLIER INFO TABLE -->
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
         <tr>
-          <td style="border:1px solid #ccc;padding:6px 10px;width:55%;font-size:11px;"><strong>SUPPLIER:</strong> <strong>${po.supplier?.name || ''}</strong></td>
-          <td style="border:1px solid #ccc;padding:6px 10px;font-size:11px;"><strong>PAYMENT TERMS:</strong><br>${po.paymentTerms}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;width:55%;font-size:11px;color:#000;"><strong>SUPPLIER:</strong> <strong>${po.supplier?.name || ''}</strong></td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>PAYMENT TERMS:</strong><br><span style="font-weight:600;">${po.paymentTerms}</span></td>
         </tr>
         <tr>
-          <td style="border:1px solid #ccc;padding:6px 10px;font-size:11px;"><strong>CONTACT PERSON:</strong> ${po.supplier?.contact || ''}</td>
-          <td style="border:1px solid #ccc;padding:6px 10px;font-size:11px;"><strong>DELIVERY DATE:</strong><br>${po.deliveryDate || ''}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>CONTACT PERSON:</strong> ${po.supplier?.contact || ''}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>DELIVERY DATE:</strong><br><span style="font-weight:600;">${po.deliveryDate || ''}</span></td>
         </tr>
         <tr>
-          <td style="border:1px solid #ccc;padding:6px 10px;font-size:11px;"><strong>Tel No.</strong> ${po.supplier?.tel || ''}</td>
-          <td style="border:1px solid #ccc;padding:6px 10px;font-size:11px;">Fax &nbsp; ${po.supplier?.fax || ''}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>Tel No.</strong> ${po.supplier?.tel || ''}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>Fax</strong> &nbsp; ${po.supplier?.fax || ''}</td>
         </tr>
         <tr>
-          <td style="border:1px solid #ccc;padding:6px 10px;font-size:11px;" colspan="2"><strong>ADDRESS:</strong> ${po.supplier?.address || ''}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;" colspan="2"><strong>ADDRESS:</strong> ${po.supplier?.address || ''}</td>
         </tr>
       </table>
 
       <!-- ITEMS TABLE -->
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;">
         <thead>
-          <tr style="background:#f5f4f0;">
-            <th style="border:1px solid #ccc;padding:7px 8px;width:45px;text-align:center;">ITEM NO.</th>
-            <th style="border:1px solid #ccc;padding:7px 8px;">DESCRIPTION</th>
-            <th style="border:1px solid #ccc;padding:7px 8px;width:55px;text-align:center;">QTY.</th>
-            <th style="border:1px solid #ccc;padding:7px 8px;width:55px;text-align:center;">UNIT</th>
-            <th style="border:1px solid #ccc;padding:7px 8px;width:110px;text-align:right;">UNIT PRICE</th>
-            <th style="border:1px solid #ccc;padding:7px 8px;width:115px;text-align:right;">AMOUNT</th>
+          <tr style="background:#e8e8e8;">
+            <th style="border:1.5px solid #555;padding:7px 8px;width:45px;text-align:center;color:#000;">ITEM NO.</th>
+            <th style="border:1.5px solid #555;padding:7px 8px;color:#000;">DESCRIPTION</th>
+            <th style="border:1.5px solid #555;padding:7px 8px;width:55px;text-align:center;color:#000;">QTY.</th>
+            <th style="border:1.5px solid #555;padding:7px 8px;width:55px;text-align:center;color:#000;">UNIT</th>
+            <th style="border:1.5px solid #555;padding:7px 8px;width:110px;text-align:right;color:#000;">UNIT PRICE</th>
+            <th style="border:1.5px solid #555;padding:7px 8px;width:115px;text-align:right;color:#000;">AMOUNT</th>
           </tr>
         </thead>
         <tbody>
           ${itemsHTML}
           ${vatLabel}
           <tr>
-            <td colspan="6" style="border:1px solid #ccc;padding:5px 8px;font-style:italic;font-size:10px;color:#777;">
+            <td colspan="6" style="border:1.5px solid #555;padding:5px 8px;font-style:italic;font-size:10px;color:#333;">
               ******Nothing Follows********
             </td>
           </tr>
@@ -1405,12 +1405,12 @@ function buildPreviewHTML(po) {
       <!-- TOTALS + WORDS -->
       <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;gap:16px;">
         <div style="flex:1;">
-          <div style="font-size:11px;margin-bottom:4px;"><strong>AMOUNT IN WORDS:</strong> ${numToWords(total)}</div>
-          <div style="font-size:9px;color:#666;margin-top:6px;">NOTE: KINDLY CONFIRM RECEIPT AND FAX BACK AT TELEFAX NO. 8218323.</div>
+          <div style="font-size:11px;margin-bottom:4px;color:#000;"><strong>AMOUNT IN WORDS:</strong> ${numToWords(total)}</div>
+          <div style="font-size:10px;color:#333;margin-top:6px;font-weight:500;">NOTE: KINDLY CONFIRM RECEIPT AND FAX BACK AT TELEFAX NO. 8218323.</div>
         </div>
-        <div style="border:2px solid #1a1a2e;padding:10px 16px;border-radius:4px;text-align:right;min-width:190px;">
-          ${vatOption === 'add' ? `<div style="font-size:9px;color:#666;text-align:right;">Subtotal: ₱${formatNum(subtotal)}</div><div style="font-size:9px;color:#666;text-align:right;">12% VAT: ₱${formatNum(vatAmount)}</div>` : ''}
-          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#666;">TOTAL AMNT</div>
+        <div style="border:2px solid #000;padding:10px 16px;border-radius:4px;text-align:right;min-width:190px;">
+          ${vatOption === 'add' ? `<div style="font-size:9px;color:#333;text-align:right;font-weight:600;">Subtotal: ₱${formatNum(subtotal)}</div><div style="font-size:9px;color:#333;text-align:right;font-weight:600;">12% VAT: ₱${formatNum(vatAmount)}</div>` : ''}
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#333;letter-spacing:1px;">TOTAL AMNT</div>
           <div style="font-family:monospace;font-size:20px;font-weight:700;color:#c8392b;">( ${formatNum(total)} )</div>
         </div>
       </div>
@@ -1418,25 +1418,25 @@ function buildPreviewHTML(po) {
       <!-- SIGNATURES ROW -->
       <table style="width:100%;border-collapse:collapse;">
         <tr>
-          <td style="border:1px solid #ccc;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;">
+          <td style="border:1.5px solid #555;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;color:#000;">
             <strong>PREPARED BY:</strong><br>
             ${preparedBySig ? `<div style="text-align:center;margin:2px 0;"><img src="${preparedBySig}" style="height:70px;max-width:180px;object-fit:contain;" alt="Signature"></div>` : '<br><br>'}
-            <div style="border-top:1px solid #555;padding-top:4px;text-align:center;font-size:10px;">${preparedBy}</div>
+            <div style="border-top:1.5px solid #333;padding-top:4px;text-align:center;font-size:10px;font-weight:600;color:#000;">${preparedBy}</div>
           </td>
-          <td style="border:1px solid #ccc;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;">
+          <td style="border:1.5px solid #555;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;color:#000;">
             <strong>APPROVED BY:</strong><br>
             <div style="text-align:center;margin:2px 0;">
               <img src="${window.SIG_B64}" style="height:70px;max-width:180px;object-fit:contain;" alt="Signature">
             </div>
-            <div style="border-top:1px solid #555;padding-top:4px;text-align:center;font-size:10px;">Jose Vicente Tanseco</div>
+            <div style="border-top:1.5px solid #333;padding-top:4px;text-align:center;font-size:10px;font-weight:600;color:#000;">Jose Vicente Tanseco</div>
           </td>
-          <td style="border:1px solid #ccc;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;">
+          <td style="border:1.5px solid #555;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;color:#000;">
             <strong>CONFORME:</strong><br><br><br>
-            <div style="border-top:1px solid #555;padding-top:4px;text-align:center;font-size:10px;">Printed Name &amp; Signature</div>
+            <div style="border-top:1.5px solid #333;padding-top:4px;text-align:center;font-size:10px;font-weight:500;color:#333;">Printed Name &amp; Signature</div>
           </td>
-          <td style="border:1px solid #ccc;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;">
+          <td style="border:1.5px solid #555;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;color:#000;">
             <strong>DATE RECEIVED</strong><br><br><br>
-            <div style="border-top:1px solid #555;padding-top:4px;">&nbsp;</div>
+            <div style="border-top:1.5px solid #333;padding-top:4px;">&nbsp;</div>
           </td>
         </tr>
       </table>
