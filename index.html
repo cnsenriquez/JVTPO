@@ -292,14 +292,17 @@
       </div>
       <div class="form-group">
         <label>Payment Terms</label>
-        <select id="paymentTerms">
+        <input list="paymentTermsList" id="paymentTerms" placeholder="e.g. ONLINE DEPOSIT">
+        <datalist id="paymentTermsList">
           <option>ONLINE DEPOSIT</option>
           <option>CASH</option>
+          <option>COD</option>
+          <option>PDC</option>
           <option>50% DP / 50% COD</option>
           <option>30 DAYS</option>
           <option>45 DAYS</option>
           <option>60 DAYS</option>
-        </select>
+        </datalist>
       </div>
       <div class="form-group">
         <label>Delivery Date <span style="font-size:10px;color:var(--text3);">(optional)</span></label>
@@ -621,12 +624,351 @@ async function loadAllData() {
     window.savedPOs.sort((a,b) => (a.poNumber || '').localeCompare(b.poNumber || ''));
 
     // Seed sample data if empty
-    if (window.suppliers.length === 0) {
-      window.suppliers.push({ name: 'KC ELECTRICAL INNOVATION INC.', contact: 'LYNLEE MENOR', tel: '9291008698', fax: '', address: '1520 MAYHALIGUE ST. CORNER T. MAPUA, BRGY 329 STA. CRUZ MANILA' });
+    // Sync: merge seed suppliers — add any missing ones by name
+    const SEED_SUPPLIERS = [
+      {
+            "name": "KC ELECTRICAL INNOVATION INC.",
+            "contact": "LYNLEE MENOR",
+            "tel": "9291008698",
+            "fax": "",
+            "address": "1520 MAYHALIGUE ST. CORNER T. MAPUA, BRGY 329 STA. CRUZ MANILA"
+      },
+      {
+            "name": "IS ELECTRONICS SHOP",
+            "contact": "Ms. Kim Cuachin",
+            "tel": "7330131",
+            "fax": "",
+            "address": "558 Gil Puyat Street, Sta. Cruz, Manila"
+      },
+      {
+            "name": "SALES GLASS & ALUMINUM SUPPLY CORP.",
+            "contact": "Ms. Edalyn",
+            "tel": "87117447",
+            "fax": "",
+            "address": "1311 C,M Recto Ave. Brgy 313, Zone 31, Sta. Cruz, Manila"
+      },
+      {
+            "name": "GEM ACRYLIC CENTER",
+            "contact": "Mr. James",
+            "tel": "82920276",
+            "fax": "",
+            "address": "5 Maysan Road cor Mac Arthur Highway, Malinta"
+      },
+      {
+            "name": "HE-MAX INDUSTRIAL CORPORATION",
+            "contact": "Mr. Leah/Ms. Shine",
+            "tel": "84010642",
+            "fax": "",
+            "address": "428 10th Avenue cor. 9th Street, Caloocan City"
+      },
+      {
+            "name": "GLOBAL NEXUS CORPORATION",
+            "contact": "Mr. Frankie",
+            "tel": "85265706",
+            "fax": "",
+            "address": "2211 Taft Ave., Zone 078 Brgy. 709, 1004 Malate, Manila"
+      },
+      {
+            "name": "A. WIN ELECTRONICS GOODS TRADING",
+            "contact": "Ms. Norma",
+            "tel": "53103101",
+            "fax": "",
+            "address": "669 E. Evangelista St., corner Soler Street, Quiapo, Manila"
+      },
+      {
+            "name": "ALUMINUM POWER MKTG. CORP.",
+            "contact": "Ms. Gemma",
+            "tel": "2920276",
+            "fax": "",
+            "address": "637 T. Alonzo, Brgy. 299, Sta Cruz, Manila"
+      },
+      {
+            "name": "SUPERSONIC MFG INC.",
+            "contact": "Ms. Ana",
+            "tel": "85317310",
+            "fax": "",
+            "address": "248 Romualdez St., Mandaluyong City"
+      },
+      {
+            "name": "G-START BUILDERS CORPORATION",
+            "contact": "Mr. Ernie Maines",
+            "tel": "",
+            "fax": "",
+            "address": "4139 Del Mundo Street, Ugong, Valenzuela, Philippines 1440"
+      },
+      {
+            "name": "NEW CIRCULATED ELECTRICAL SUPPLY",
+            "contact": "Ms. Emily",
+            "tel": "7335303",
+            "fax": "",
+            "address": "633 T. Alonzo Street, Sta. Cruz, Manila"
+      },
+      {
+            "name": "MIN ELECTRICAL CONTROL",
+            "contact": "Ms. Norma",
+            "tel": "53103101",
+            "fax": "",
+            "address": "669 E. Evangelista St., corner Soler Street, Quiapo, Manila"
+      }
+];
+    const existingSupNames = new Set(window.suppliers.map(s => s.name));
+    let suppliersChanged = false;
+    for (const seed of SEED_SUPPLIERS) {
+      if (!existingSupNames.has(seed.name)) {
+        window.suppliers.push(seed);
+        suppliersChanged = true;
+      }
+    }
+    if (window.suppliers.length === 0 || suppliersChanged) {
       await window.saveSuppliers();
     }
-    if (window.materials.length === 0) {
-      window.materials.push({ category: 'KC ELECTRICAL INNOVATION INC.', items: [{ name: 'ABB Breaker 32A 2Pole', code: '#SH202-C32', unit: 'pc', price: 288 }] });
+    // Deduplicate materials: case-insensitive by category, keep uppercase/latest
+    const matMap = new Map();
+    for (const m of window.materials) {
+      const key = m.category.trim().toUpperCase();
+      const existing = matMap.get(key);
+      if (!existing || m.category === m.category.toUpperCase()) {
+        matMap.set(key, { ...m, category: m.category.trim().toUpperCase() });
+      }
+    }
+    window.materials = Array.from(matMap.values());
+
+    // Also deduplicate suppliers
+    const supMap = new Map();
+    for (const s of window.suppliers) {
+      const key = s.name.trim().toUpperCase();
+      if (!supMap.has(key)) {
+        supMap.set(key, { ...s, name: s.name.trim().toUpperCase() });
+      }
+    }
+    window.suppliers = Array.from(supMap.values());
+
+    // Sync: merge seed materials — add any missing categories by name
+    const SEED_MATERIALS = [
+      {
+            "category": "KC ELECTRICAL INNOVATION INC.",
+            "items": [
+                  {
+                        "name": "ABB Breaker 32A 2Pole",
+                        "desc": "",
+                        "code": "#SH202-C32",
+                        "unit": "pc",
+                        "price": 288.0
+                  }
+            ]
+      },
+      {
+            "category": "IS ELECTRONICS SHOP",
+            "items": [
+                  {
+                        "name": "Pilot Lamp Green",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PC",
+                        "price": 20.0
+                  },
+                  {
+                        "name": "Soldering Lead",
+                        "desc": "",
+                        "code": "",
+                        "unit": "ROLL",
+                        "price": 1450.0
+                  },
+                  {
+                        "name": "T-lug 55-5 w/ insulation",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PC",
+                        "price": 6.5
+                  },
+                  {
+                        "name": "100 Ohms Resistor 2watts",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PC",
+                        "price": 2.0
+                  },
+                  {
+                        "name": "C13",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PC",
+                        "price": 22.0
+                  },
+                  {
+                        "name": "AC Outlet",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PC",
+                        "price": 22.0
+                  }
+            ]
+      },
+      {
+            "category": "SALES GLASS & ALUMINUM SUPPLY CORP.",
+            "items": [
+                  {
+                        "name": "Star Slide check/ Door Closer",
+                        "desc": "",
+                        "code": "",
+                        "unit": "Pc",
+                        "price": 3584.0
+                  }
+            ]
+      },
+      {
+            "category": "GEM ACRYLIC CENTER",
+            "items": [
+                  {
+                        "name": "POLYCARBONATE TWIN WALL (CLEAR)",
+                        "desc": "6mm x 4ft x 8ft",
+                        "code": "",
+                        "unit": "PCS",
+                        "price": 1525.0
+                  }
+            ]
+      },
+      {
+            "category": "HE-MAX INDUSTRIAL CORPORATION",
+            "items": [
+                  {
+                        "name": "CRS 1.5mm x 4ft x 8ft",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PC",
+                        "price": 1680.0
+                  },
+                  {
+                        "name": "CRS 1mm x 4ft x 8ft",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PC",
+                        "price": 1190.0
+                  }
+            ]
+      },
+      {
+            "category": "GLOBAL NEXUS CORPORATION",
+            "items": [
+                  {
+                        "name": "BI SQT",
+                        "desc": "1.5mm x 50mm x 50mm x 20ft",
+                        "code": "",
+                        "unit": "pc",
+                        "price": 165.0
+                  },
+                  {
+                        "name": "BI RT",
+                        "desc": "1.2mm x 20mm x 50mm x 20ft",
+                        "code": "",
+                        "unit": "pc",
+                        "price": 487.0
+                  }
+            ]
+      },
+      {
+            "category": "A. WIN ELECTRONICS GOODS TRADING",
+            "items": [
+                  {
+                        "name": "Royal Cord #10",
+                        "desc": "75meters/Roll, 3Wire, Wiremax Brand",
+                        "code": "5.5mm2 / 3WIRE",
+                        "unit": "roll",
+                        "price": 11920.0
+                  }
+            ]
+      },
+      {
+            "category": "ALUMINUM POWER MKTG. CORP.",
+            "items": [
+                  {
+                        "name": "ALUM. RT",
+                        "desc": "1.5mm x 50mm x 75mm x 21ft",
+                        "code": "",
+                        "unit": "pcs",
+                        "price": 2310.0
+                  }
+            ]
+      },
+      {
+            "category": "SUPERSONIC MFG INC.",
+            "items": [
+                  {
+                        "name": "STEEL MATTING",
+                        "desc": "3.2mm x 1\" x 1\" x 4' x 8'",
+                        "code": "",
+                        "unit": "Pc",
+                        "price": 1550.0
+                  }
+            ]
+      },
+      {
+            "category": "G-START BUILDERS CORPORATION",
+            "items": [
+                  {
+                        "name": "CUSTOMIZED DCPDB 19'' 100Ax1P (1PC) & 20Ax1P (5PCS) CASING ONLY",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PCS",
+                        "price": 2650.0
+                  },
+                  {
+                        "name": "CUSTOMIZED DCPDB 19'' 100Ax1P (2PC) & 80Ax1P (4PCS) CASING ONLY",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PCS",
+                        "price": 2650.0
+                  },
+                  {
+                        "name": "CUSTOMIZED DCPDB 19'' 100Ax1P (1PC) & 32Ax1P (4PCS) CASING ONLY",
+                        "desc": "",
+                        "code": "",
+                        "unit": "PCS",
+                        "price": 2650.0
+                  }
+            ]
+      },
+      {
+            "category": "NEW CIRCULATED ELECTRICAL SUPPLY",
+            "items": [
+                  {
+                        "name": "THHN Stranded Wire 3.5mm2",
+                        "desc": "150meters/box",
+                        "code": "Philflex brand",
+                        "unit": "box",
+                        "price": 4655.0
+                  },
+                  {
+                        "name": "Fishpaper",
+                        "desc": "",
+                        "code": "",
+                        "unit": "meters",
+                        "price": 135.0
+                  }
+            ]
+      },
+      {
+            "category": "MIN ELECTRICAL CONTROL",
+            "items": [
+                  {
+                        "name": "Royal Cord #10",
+                        "desc": "75meters/Roll, 3Wire",
+                        "code": "5.5mm2 / 3WIRE",
+                        "unit": "Roll",
+                        "price": 11920.0
+                  }
+            ]
+      }
+];
+    const existingCatNames = new Set(window.materials.map(m => m.category));
+    let materialsChanged = false;
+    for (const seed of SEED_MATERIALS) {
+      if (!existingCatNames.has(seed.category)) {
+        window.materials.push(seed);
+        materialsChanged = true;
+      }
+    }
+    if (window.materials.length === 0 || materialsChanged) {
       await window.saveMaterials();
     }
 
@@ -1199,17 +1541,28 @@ function openProductPicker(folderIdx) {
     return;
   }
 
-  // If folderIdx given, start on that folder; else start on first
-  _pickerFolderIdx = (folderIdx !== undefined && folderIdx !== null) ? folderIdx : 0;
+  const singleFolder = (folderIdx !== undefined && folderIdx !== null);
 
-  window.materials.forEach((folder, ci) => {
+  if (singleFolder) {
+    // Only show the chosen supplier's folder — no other tabs
+    _pickerFolderIdx = folderIdx;
+    const folder = window.materials[folderIdx];
     const btn = document.createElement('button');
     btn.textContent = folder.category;
-    btn.dataset.ci = ci;
-    btn.onclick = function() { _pickerFolderIdx = ci; renderPickerFolder(); };
-    btn.style.cssText = 'padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);transition:all 0.15s;white-space:nowrap;';
+    btn.style.cssText = 'padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:#fff;white-space:nowrap;';
     tabsEl.appendChild(btn);
-  });
+  } else {
+    // Manual open — show all folders as tabs
+    _pickerFolderIdx = 0;
+    window.materials.forEach((folder, ci) => {
+      const btn = document.createElement('button');
+      btn.textContent = folder.category;
+      btn.dataset.ci = ci;
+      btn.onclick = function() { _pickerFolderIdx = ci; renderPickerFolder(); };
+      btn.style.cssText = 'padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);transition:all 0.15s;white-space:nowrap;';
+      tabsEl.appendChild(btn);
+    });
+  }
 
   renderPickerFolder();
   document.getElementById('materialPickModal').classList.add('open');
@@ -1579,15 +1932,15 @@ function buildPreviewHTML(po) {
       </td>
       <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${item.qty}</td>
       <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${item.unit}</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;color:#000;vertical-align:middle;">( ${formatNum(item.price)} )</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;vertical-align:middle;">( ${formatNum(item.amount)} )</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;color:#000;vertical-align:middle;">${formatNum(item.price)}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;vertical-align:middle;">${formatNum(item.amount)}</td>
     </tr>
   `).join('');
 
   const filledCount = (po.items || []).filter(i => i.desc).length;
   // No empty filler rows - only show items with content
 
-  const vatLabel = vatOption === 'add' ? `<tr><td colspan="5" style="border:1.5px solid #555;padding:5px 8px;text-align:right;font-size:11px;font-weight:600;color:#000;">12% VAT</td><td style="border:1.5px solid #555;padding:5px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;">( ${formatNum(vatAmount)} )</td></tr>` : '';
+  const vatLabel = vatOption === 'add' ? `<tr><td colspan="5" style="border:1.5px solid #555;padding:5px 8px;text-align:right;font-size:11px;font-weight:600;color:#000;">12% VAT</td><td style="border:1.5px solid #555;padding:5px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;">${formatNum(vatAmount)}</td></tr>` : '';
 
   return `
     <div id="po-print-area" style="font-family:'DM Sans',Arial,sans-serif;font-size:12px;color:#000000;line-height:1.5;background:#fff;padding:28px 32px;max-width:780px;margin:0 auto;">
@@ -1663,7 +2016,7 @@ function buildPreviewHTML(po) {
         <div style="border:2px solid #000;padding:10px 16px;border-radius:4px;text-align:right;min-width:190px;">
           ${vatOption === 'add' ? `<div style="font-size:9px;color:#333;text-align:right;font-weight:600;">Subtotal: ₱${formatNum(subtotal)}</div><div style="font-size:9px;color:#333;text-align:right;font-weight:600;">12% VAT: ₱${formatNum(vatAmount)}</div>` : ''}
           <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#333;letter-spacing:1px;">TOTAL AMNT</div>
-          <div style="font-family:monospace;font-size:20px;font-weight:700;color:#c8392b;">( ${formatNum(total)} )</div>
+          <div style="font-family:monospace;font-size:20px;font-weight:700;color:#c8392b;">${formatNum(total)}</div>
         </div>
       </div>
 
