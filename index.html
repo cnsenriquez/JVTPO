@@ -673,7 +673,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function setDefaultDates() {
   const today = new Date().toISOString().split('T')[0];
-  document.getElementById('poDate').value = today;
+  const poDate = document.getElementById('poDate');
+  if (!poDate.value) poDate.value = today;
 }
 
 // ========== TABS ==========
@@ -701,28 +702,52 @@ function removeItem(idx) {
 
 function renderItems() {
   const tbody = document.getElementById('itemsBody');
+  const focused = document.activeElement;
+  const focusedId = focused?.dataset?.itemkey;
+
   tbody.innerHTML = '';
   (window._items || []).forEach((item, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="text-align:center;color:var(--text3);font-size:12px;">${idx + 1}</td>
-      <td><input value="${item.desc}" onchange="updateItem(${idx},'desc',this.value)" placeholder="Description"></td>
-      <td><input value="${item.code}" onchange="updateItem(${idx},'code',this.value)" placeholder="Code" style="font-family:'DM Mono',monospace;font-size:11px;"></td>
-      <td><input type="number" value="${item.qty}" onchange="updateItem(${idx},'qty',this.value)" min="1" style="text-align:center;"></td>
-      <td><input value="${item.unit}" onchange="updateItem(${idx},'unit',this.value)"></td>
-      <td><input type="number" value="${item.price}" onchange="updateItem(${idx},'price',this.value)" placeholder="0.00"></td>
+      <td><input data-itemkey="desc-${idx}" value="${(item.desc||'').replace(/"/g,'&quot;')}" oninput="updateItem(${idx},'desc',this.value)" placeholder="Description"></td>
+      <td><input data-itemkey="code-${idx}" value="${(item.code||'').replace(/"/g,'&quot;')}" oninput="updateItem(${idx},'code',this.value)" placeholder="Code" style="font-family:'DM Mono',monospace;font-size:11px;"></td>
+      <td><input type="number" data-itemkey="qty-${idx}" value="${item.qty||''}" oninput="updateItem(${idx},'qty',this.value)" min="1" style="text-align:center;"></td>
+      <td><input data-itemkey="unit-${idx}" value="${item.unit||''}" oninput="updateItem(${idx},'unit',this.value)"></td>
+      <td><input type="number" data-itemkey="price-${idx}" value="${item.price||''}" oninput="updateItem(${idx},'price',this.value)" placeholder="0.00"></td>
       <td class="amount-cell">₱ ${formatNum(item.amount)}</td>
       <td><button class="btn-remove" onclick="removeItem(${idx})">×</button></td>
     `;
     tbody.appendChild(tr);
   });
+
+  // Restore focus to the same field
+  if (focusedId) {
+    const el = tbody.querySelector(`[data-itemkey="${focusedId}"]`);
+    if (el) {
+      el.focus();
+      // Restore cursor to end
+      if (el.type === 'text' || el.type === undefined) {
+        const len = el.value.length;
+        el.setSelectionRange(len, len);
+      }
+    }
+  }
+
   calcTotal();
 }
 
 function updateItem(idx, field, val) {
-  window._items[idx][field] = field === 'qty' || field === 'price' ? parseFloat(val) || 0 : val;
+  window._items[idx][field] = (field === 'qty' || field === 'price') ? parseFloat(val) || 0 : val;
   window._items[idx].amount = (parseFloat(window._items[idx].qty) || 0) * (parseFloat(window._items[idx].price) || 0);
-  renderItems();
+  // Only update the amount cell, not the whole table (preserves focus/cursor)
+  const tbody = document.getElementById('itemsBody');
+  const rows = tbody.querySelectorAll('tr');
+  if (rows[idx]) {
+    const amountCell = rows[idx].querySelector('.amount-cell');
+    if (amountCell) amountCell.textContent = '₱ ' + formatNum(window._items[idx].amount);
+  }
+  calcTotal();
 }
 
 function calcTotal() {
@@ -755,7 +780,7 @@ function fillSupplier(idx) {
   document.getElementById('suppFax').value = s.fax || '';
   document.getElementById('suppAddress').value = s.address || '';
 
-  // Find matching window.materials folder for this supplier
+  // Find matching materials folder for this supplier
   const supplierName = s.name.toLowerCase();
   const folderIdx = window.materials.findIndex(m =>
     m.category.toLowerCase() === supplierName ||
@@ -764,7 +789,9 @@ function fillSupplier(idx) {
   );
 
   if (folderIdx >= 0 && window.materials[folderIdx].items.length > 0) {
-    openProductPicker(folderIdx);
+    const count = window.materials[folderIdx].items.length;
+    showToast('📦 ' + count + ' item(s) found — piliin ang idadagdag sa PO');
+    setTimeout(() => openProductPicker(folderIdx), 300);
   }
 }
 
@@ -853,7 +880,10 @@ function deleteSupplier(idx) {
   populateSupplierSelect();
 }
 
-function saveSuppliers() { localStorage.setItem('jvt_suppliers', JSON.stringify(window.suppliers)); }
+function saveSuppliers() {
+  localStorage.setItem('jvt_suppliers', JSON.stringify(window.suppliers)); // backup
+  window.saveSuppliers(); // Firebase
+}
 
 function renderSuppliers() {
   const grid = document.getElementById('suppliersGrid');
@@ -916,7 +946,10 @@ function saveCategory() {
   document.getElementById('categoryModal').classList.remove('open');
 }
 
-function saveMaterials() { localStorage.setItem('jvt_materials', JSON.stringify(window.materials)); }
+function saveMaterials() {
+  localStorage.setItem('jvt_materials', JSON.stringify(window.materials)); // backup
+  window.saveMaterials(); // Firebase
+}
 
 function renderMaterialTabs() {
   const tabsEl = document.getElementById('matSupplierTabs');
@@ -1116,7 +1149,8 @@ function addSelectedProducts() {
 
   renderItems();
   document.getElementById('materialPickModal').classList.remove('open');
-  showToast(`✅ ${selected.length} product(s) added to PO`);
+  switchTabDirect('po');
+  showToast(`✅ ${selected.length} item(s) added to PO`);
 }
 
 // Legacy pickMaterial (kept for compatibility)
@@ -1152,7 +1186,7 @@ function getPOData() {
   const total = subtotal + vatAmount;
   return {
     poNumber: document.getElementById('poNumber').value,
-    date: document.getElementById('poDate').value,
+    date: document.getElementById('poDate').value || new Date().toISOString().split('T')[0],
     paymentTerms: document.getElementById('paymentTerms').value,
     deliveryDate: document.getElementById('deliveryDate').value,
     vatOption,
@@ -1282,8 +1316,10 @@ function printPO() {
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: 'DM Sans', Arial, sans-serif; background: #fff; padding: 20px; }
-      @media print { body { padding: 0; } @page { margin: 15mm; size: A4; } }
+      body { font-family: 'DM Sans', Arial, sans-serif; background: #fff; padding: 20px; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      @media print { body { padding: 0; } @page { margin: 12mm; size: A4; } }
+      td, th { color: #000 !important; }
+      span, div, p { color: inherit; }
     </style>
   </head><body>${content}<script>window.onload=function(){window.print();}<\/script></body></html>`);
   win.document.close();
@@ -1497,13 +1533,13 @@ window.openSupplierModal = openSupplierModal;
 window.closeSupplierModal = closeSupplierModal;
 window.saveSupplier = saveSupplier;
 window.deleteSupplier = deleteSupplier;
-window.saveSuppliers = saveSuppliers;
+// window.saveSuppliers handled by Firebase helper above
 window.renderSuppliers = renderSuppliers;
 window.openAddMatSupplierModal = openAddMatSupplierModal;
 window.fillFolderName = fillFolderName;
 window.openCategoryModal = openCategoryModal;
 window.saveCategory = saveCategory;
-window.saveMaterials = saveMaterials;
+// window.saveMaterials handled by Firebase helper above
 window.renderMaterialTabs = renderMaterialTabs;
 window.setActiveMatSupplier = setActiveMatSupplier;
 window.renderMaterials = renderMaterials;
