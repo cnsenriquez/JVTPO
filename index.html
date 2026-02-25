@@ -193,7 +193,14 @@
   .category-block { margin-bottom: 24px; }
   .category-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
   .category-name { font-weight: 600; font-size: 15px; color: var(--accent2); }
-  .material-row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: center; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; margin-bottom: 8px; }
+  .material-row { background: var(--surface); border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: 10px; padding: 14px 16px; transition: border-color 0.15s; }
+  .material-row:hover { border-color: var(--accent); }
+  .material-row-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  .material-row-desc { margin-top: 8px; }
+  .mat-field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); margin-bottom: 4px; }
+  .mat-field input { width: 100%; border: 1.5px solid var(--border); border-radius: 6px; padding: 6px 9px; font-size: 13px; background: var(--bg); color: var(--text); outline: none; transition: border-color 0.15s; font-family: inherit; }
+  .mat-field input:focus { border-color: var(--accent); background: #fff; }
+  .mat-field input.mono { font-family: 'DM Mono', monospace; font-size: 12px; }
   .material-row:hover { background: var(--surface2); }
   .mat-name { font-size: 13.5px; font-weight: 500; }
   .mat-code { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text3); }
@@ -233,6 +240,11 @@
     #po-print-area { padding: 0 !important; max-width: 100% !important; }
     .modal { display: none !important; }
   }
+  /* description stack in items table */
+  .desc-stack { display: flex; flex-direction: column; gap: 3px; }
+  .desc-stack input:first-child { font-weight: 600; }
+  .desc-stack input:nth-child(2) { font-size: 11px; color: var(--text2); }
+  .desc-stack input:nth-child(3) { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); }
 </style>
 </head>
 <body>
@@ -491,31 +503,30 @@
 
 <!-- ============ PRODUCT PICKER MODAL ============ -->
 <div class="modal-overlay" id="materialPickModal">
-  <div class="modal" style="max-width:640px;width:95%;max-height:85vh;display:flex;flex-direction:column;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div class="modal-title" id="pickerTitle" style="margin-bottom:0;">Select Products</div>
-      <button onclick="document.getElementById('materialPickModal').classList.remove('open')" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);">×</button>
+  <div class="modal" style="max-width:680px;width:95%;max-height:90vh;display:flex;flex-direction:column;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div class="modal-title" id="pickerTitle" style="margin-bottom:0;">Pick Materials</div>
+      <button onclick="document.getElementById('materialPickModal').classList.remove('open')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);line-height:1;">x</button>
     </div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:14px;">Lagyan ng ✓ ang mga products na gusto mong ilagay sa PO. Pwede mo rin baguhin ang qty.</div>
-
-    <!-- Select All -->
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface2);border-radius:7px;margin-bottom:10px;">
+    <!-- Folder tabs -->
+    <div id="pickerFolderTabs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
+    <!-- Select All bar -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 12px;background:var(--surface2);border-radius:7px;margin-bottom:10px;">
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;cursor:pointer;">
         <input type="checkbox" id="selectAllCheck" onchange="toggleSelectAll(this.checked)" style="width:16px;height:16px;accent-color:var(--accent);">
         Select All
       </label>
       <span id="pickerCount" style="font-size:12px;color:var(--text3);">0 selected</span>
     </div>
-
     <!-- Product list -->
-    <div id="materialPickList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;max-height:400px;padding-right:4px;"></div>
-
+    <div id="materialPickList" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;max-height:420px;padding-right:4px;"></div>
     <div class="modal-actions" style="margin-top:16px;border-top:1px solid var(--border);padding-top:16px;">
       <button class="btn btn-secondary" onclick="document.getElementById('materialPickModal').classList.remove('open')">Cancel</button>
-      <button class="btn btn-primary" onclick="addSelectedProducts()">✅ Add to PO</button>
+      <button class="btn btn-primary" onclick="addSelectedProducts()">Add to PO</button>
     </div>
   </div>
 </div>
+
 
 <!-- ============ PO EDIT MODAL ============ -->
 <div class="modal-overlay" id="editPoModal">
@@ -619,17 +630,24 @@ async function loadAllData() {
       await window.saveMaterials();
     }
 
-    // Render everything
-    renderPreparedBySelect('Cristian Enriquez');
-    renderItems();
+    // Restore draft FIRST before any render so items/fields are correct
+    window._draftPaused = true;
+    const draftData = restoreDraftData(); // load draft into memory only
+    
+    renderPreparedBySelect(draftData?.preparedBy || 'Cristian Enriquez');
     renderSuppliers();
     renderMaterialTabs();
     renderMaterials();
     renderSummary();
     populateSupplierSelect();
+    window._draftPaused = false;
 
+    // Now apply draft to DOM fields and items
+    applyDraft(draftData);
+    bindDraftListeners();
     showLoadingOverlay(false);
-    showToast('✅ Connected to Firebase');
+    if (draftData) showToast('📝 Draft restored');
+    else showToast('✅ Connected to Firebase');
   } catch(e) {
     showLoadingOverlay(false);
     showToast('⚠️ Firebase error: ' + e.message);
@@ -638,13 +656,17 @@ async function loadAllData() {
     window.suppliers = JSON.parse(localStorage.getItem('jvt_suppliers') || '[]');
     window.materials = JSON.parse(localStorage.getItem('jvt_materials') || '[]');
     window.savedPOs = JSON.parse(localStorage.getItem('jvt_pos') || '[]');
-    renderPreparedBySelect('Cristian Enriquez');
-    renderItems();
+    window._draftPaused = true;
+    const draftData2 = restoreDraftData();
+    renderPreparedBySelect(draftData2?.preparedBy || 'Cristian Enriquez');
     renderSuppliers();
     renderMaterialTabs();
     renderMaterials();
     renderSummary();
     populateSupplierSelect();
+    window._draftPaused = false;
+    applyDraft(draftData2);
+    bindDraftListeners();
   }
 }
 
@@ -663,8 +685,12 @@ function showLoadingOverlay(show) {
 // ========== INIT ==========
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('headerLogo').src = window.LOGO_B64;
-  setDefaultDates();
-  window._items = [{ no: 1, desc: '', code: '', qty: '', unit: 'pc', price: '', amount: 0 }];
+  // Only set blank items if no draft exists; loadAllData will restore draft
+  const hasDraft = !!localStorage.getItem('jvt_po_draft');
+  if (!hasDraft) {
+    window._items = [{ no: 1, desc: '', code: '', qty: '', unit: 'pc', price: '', amount: 0 }];
+    setDefaultDates();
+  }
   loadAllData();
 });
 
@@ -702,52 +728,137 @@ function removeItem(idx) {
 
 function renderItems() {
   const tbody = document.getElementById('itemsBody');
-  const focused = document.activeElement;
-  const focusedId = focused?.dataset?.itemkey;
-
   tbody.innerHTML = '';
   (window._items || []).forEach((item, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="text-align:center;color:var(--text3);font-size:12px;">${idx + 1}</td>
-      <td><input data-itemkey="desc-${idx}" value="${(item.desc||'').replace(/"/g,'&quot;')}" oninput="updateItem(${idx},'desc',this.value)" placeholder="Description"></td>
-      <td><input data-itemkey="code-${idx}" value="${(item.code||'').replace(/"/g,'&quot;')}" oninput="updateItem(${idx},'code',this.value)" placeholder="Code" style="font-family:'DM Mono',monospace;font-size:11px;"></td>
-      <td><input type="number" data-itemkey="qty-${idx}" value="${item.qty||''}" oninput="updateItem(${idx},'qty',this.value)" min="1" style="text-align:center;"></td>
-      <td><input data-itemkey="unit-${idx}" value="${item.unit||''}" oninput="updateItem(${idx},'unit',this.value)"></td>
-      <td><input type="number" data-itemkey="price-${idx}" value="${item.price||''}" oninput="updateItem(${idx},'price',this.value)" placeholder="0.00"></td>
-      <td class="amount-cell">₱ ${formatNum(item.amount)}</td>
-      <td><button class="btn-remove" onclick="removeItem(${idx})">×</button></td>
+      <td>
+        <div class="desc-stack">
+          <input data-itemkey="desc-${idx}" value="${(item.desc||'').replace(/"/g,'&quot;')}" placeholder="Item Name">
+          <input data-itemkey="itemDesc-${idx}" value="${(item.itemDesc||'').replace(/"/g,'&quot;')}" placeholder="Description / Measurement">
+        </div>
+      </td>
+      <td><input data-itemkey="code-${idx}" value="${(item.code||'').replace(/"/g,'&quot;')}" placeholder="Brand/Code" style="font-family:'DM Mono',monospace;font-size:11px;"></td>
+      <td><input type="number" data-itemkey="qty-${idx}" value="${item.qty||''}" min="1" style="text-align:center;"></td>
+      <td><input data-itemkey="unit-${idx}" value="${item.unit||''}"></td>
+      <td><input type="number" data-itemkey="price-${idx}" value="${item.price||''}" placeholder="0.00"></td>
+      <td class="amount-cell" id="amount-cell-${idx}">P ${formatNum(item.amount)}</td>
+      <td><button class="btn-remove" onclick="removeItem(${idx})">x</button></td>
     `;
+    // Attach events after DOM insertion
+    const inputs = tr.querySelectorAll('input');
+    inputs.forEach(inp => {
+      inp.addEventListener('input', function() {
+        const key = this.dataset.itemkey;
+        if (!key) return;
+        // key = "fieldName-idx", field may contain hyphens (e.g. itemDesc)
+        const dashIdx = key.lastIndexOf('-');
+        const field = key.substring(0, dashIdx);
+        const val = this.value;
+        if (field === 'qty' || field === 'price') {
+          window._items[idx][field] = parseFloat(val) || 0;
+        } else {
+          window._items[idx][field] = val;
+        }
+        window._items[idx].amount = (parseFloat(window._items[idx].qty) || 0) * (parseFloat(window._items[idx].price) || 0);
+        const cell = document.getElementById('amount-cell-' + idx);
+        if (cell) cell.textContent = 'P ' + formatNum(window._items[idx].amount);
+        calcTotal();
+      });
+    });
     tbody.appendChild(tr);
   });
-
-  // Restore focus to the same field
-  if (focusedId) {
-    const el = tbody.querySelector(`[data-itemkey="${focusedId}"]`);
-    if (el) {
-      el.focus();
-      // Restore cursor to end
-      if (el.type === 'text' || el.type === undefined) {
-        const len = el.value.length;
-        el.setSelectionRange(len, len);
-      }
-    }
-  }
-
   calcTotal();
 }
 
 function updateItem(idx, field, val) {
-  window._items[idx][field] = (field === 'qty' || field === 'price') ? parseFloat(val) || 0 : val;
-  window._items[idx].amount = (parseFloat(window._items[idx].qty) || 0) * (parseFloat(window._items[idx].price) || 0);
-  // Only update the amount cell, not the whole table (preserves focus/cursor)
-  const tbody = document.getElementById('itemsBody');
-  const rows = tbody.querySelectorAll('tr');
-  if (rows[idx]) {
-    const amountCell = rows[idx].querySelector('.amount-cell');
-    if (amountCell) amountCell.textContent = '₱ ' + formatNum(window._items[idx].amount);
+  if (!window._items[idx]) return;
+  if (field === 'qty' || field === 'price') {
+    window._items[idx][field] = parseFloat(val) || 0;
+  } else {
+    window._items[idx][field] = val;
   }
+  window._items[idx].amount = (parseFloat(window._items[idx].qty) || 0) * (parseFloat(window._items[idx].price) || 0);
+  const cell = document.getElementById('amount-cell-' + idx);
+  if (cell) cell.textContent = 'P ' + formatNum(window._items[idx].amount);
   calcTotal();
+}
+
+
+// ========== DRAFT AUTO-SAVE ==========
+const DRAFT_KEY = 'jvt_po_draft';
+const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','vatOption','suppName','suppContact','suppTel','suppFax','suppAddress'];
+
+function saveDraft() {
+  if (window._draftPaused) return; // don't save during initial render
+  try {
+    const draft = {};
+    DRAFT_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) draft[id] = el.value;
+    });
+    // Save prepared by
+    const pb = document.getElementById('preparedBy');
+    if (pb) draft.preparedBy = pb.value;
+    // Save items
+    draft.items = window._items ? window._items.map(i => ({ ...i })) : [];
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch(e) { /* silent */ }
+}
+
+function restoreDraftData() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function applyDraft(draft) {
+  if (!draft) {
+    // No draft — just render blank items
+    renderItems();
+    calcTotal();
+    return;
+  }
+  try {
+    DRAFT_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el && draft[id] !== undefined) el.value = draft[id];
+    });
+    if (draft.preparedBy) {
+      renderPreparedBySelect(draft.preparedBy);
+    }
+    if (draft.items && draft.items.length > 0) {
+      window._items = draft.items;
+    }
+    renderItems();
+    calcTotal();
+  } catch(e) { console.error('applyDraft error:', e); }
+}
+
+// Keep restoreDraft as alias for compatibility
+function restoreDraft() {
+  const draft = restoreDraftData();
+  applyDraft(draft);
+  return !!draft;
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY);
+}
+
+// Hook all PO form inputs to auto-save draft
+function bindDraftListeners() {
+  const DRAFT_FIELDS_LIST = [...DRAFT_FIELDS, 'preparedBy'];
+  DRAFT_FIELDS_LIST.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', saveDraft);
+      el.addEventListener('change', saveDraft);
+    }
+  });
 }
 
 function calcTotal() {
@@ -760,6 +871,7 @@ function calcTotal() {
   if (vatOption === 'add' && vatAmount > 0) wordsText = `Subtotal: ₱${formatNum(subtotal)} + VAT: ₱${formatNum(vatAmount)}`;
   if (vatOption === 'inclusive') wordsText = 'VAT inclusive';
   document.getElementById('totalWords').textContent = wordsText;
+  saveDraft(); // auto-save on every calculation
 }
 
 // ========== SUPPLIER SELECT FILL ==========
@@ -980,6 +1092,57 @@ function renderMaterials() {
   if (activeMaterialSupplier === null) activeMaterialSupplier = 0;
   const ci = activeMaterialSupplier;
   const cat = window.materials[ci];
+
+  let itemsHTML = '';
+  if (cat.items.length === 0) {
+    itemsHTML = '<p style="font-size:13px;color:var(--text3);padding:12px 0;">No items yet. Click "+ Add Item".</p>';
+  } else {
+    cat.items.forEach((item, ii) => {
+      itemsHTML += `
+        <div class="material-row">
+          <div class="material-row-grid">
+            <div class="mat-field" style="grid-column:1/4;">
+              <label>Item Name</label>
+              <input value="${(item.name||'').replace(/"/g,'&quot;')}"
+                onchange="updateMaterial(${ci},${ii},'name',this.value)"
+                placeholder="e.g. ABB Breaker 32A 2Pole">
+            </div>
+            <div class="mat-field">
+              <label>Unit</label>
+              <input value="${(item.unit||'').replace(/"/g,'&quot;')}"
+                onchange="updateMaterial(${ci},${ii},'unit',this.value)"
+                placeholder="pc / roll / set">
+            </div>
+            <div style="display:flex;align-items:flex-end;padding-bottom:1px;">
+              <button class="btn-remove" onclick="deleteMaterial(${ci},${ii})" style="width:32px;height:32px;font-size:16px;">x</button>
+            </div>
+          </div>
+          <div class="material-row-grid material-row-desc">
+            <div class="mat-field" style="grid-column:1/3;">
+              <label>Description / Specs</label>
+              <input value="${(item.desc||'').replace(/"/g,'&quot;')}"
+                onchange="updateMaterial(${ci},${ii},'desc',this.value)"
+                placeholder="e.g. 75meters/Roll, 3wire, Wiremax Brand">
+            </div>
+            <div class="mat-field">
+              <label>Code / Model</label>
+              <input class="mono" value="${(item.code||'').replace(/"/g,'&quot;')}"
+                onchange="updateMaterial(${ci},${ii},'code',this.value)"
+                placeholder="e.g. #SH202-C32">
+            </div>
+            <div class="mat-field">
+              <label>Unit Price (P)</label>
+              <input class="mono" type="number" value="${item.price||0}"
+                onchange="updateMaterial(${ci},${ii},'price',this.value)"
+                placeholder="0.00" min="0" step="0.01">
+            </div>
+            <div></div>
+          </div>
+        </div>
+      `;
+    });
+  }
+
   container.innerHTML = `
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
@@ -989,24 +1152,14 @@ function renderMaterials() {
           <button class="btn btn-sm" style="color:var(--accent);border:1px solid var(--accent);background:transparent;" onclick="deleteCategory(${ci})">🗑 Delete Folder</button>
         </div>
       </div>
-      ${cat.items.length === 0 ? '<p style="font-size:13px;color:var(--text3);padding:8px 0;">No items yet. Click "+ Add Item".</p>' : ''}
-      ${cat.items.map((item, ii) => `
-        <div class="material-row">
-          <div>
-            <div class="mat-name"><input value="${item.name}" onchange="updateMaterial(${ci},${ii},'name',this.value)" style="width:100%;border:none;background:transparent;font-size:13.5px;font-weight:500;padding:0;outline:none;" placeholder="Material name"></div>
-            <div class="mat-code"><input value="${item.code}" onchange="updateMaterial(${ci},${ii},'code',this.value)" style="width:100%;border:none;background:transparent;font-size:11px;color:var(--text3);padding:0;outline:none;font-family:'DM Mono',monospace;" placeholder="Code / Model"></div>
-          </div>
-          <div class="mat-unit"><input value="${item.unit}" onchange="updateMaterial(${ci},${ii},'unit',this.value)" style="border:none;background:transparent;font-size:12px;color:var(--text2);width:100%;padding:0;outline:none;" placeholder="unit"></div>
-          <div class="mat-price">₱ <input type="number" value="${item.price}" onchange="updateMaterial(${ci},${ii},'price',this.value)" style="border:none;background:transparent;font-size:13.5px;font-weight:500;width:80px;padding:0;outline:none;text-align:right;font-family:'DM Mono',monospace;"></div>
-          <button class="btn-remove" onclick="deleteMaterial(${ci},${ii})">×</button>
-        </div>
-      `).join('')}
+      ${itemsHTML}
     </div>
   `;
 }
 
+
 function addMaterialRow(ci) {
-  window.materials[ci].items.push({ name: '', code: '', unit: 'pc', price: 0 });
+  window.materials[ci].items.push({ name: '', desc: '', code: '', unit: 'pc', price: 0 });
   saveMaterials();
   renderMaterials();
 }
@@ -1035,59 +1188,106 @@ function deleteCategory(ci) {
 let _pickerFolderIdx = null;
 
 function openProductPicker(folderIdx) {
-  _pickerFolderIdx = folderIdx !== undefined ? folderIdx : null;
-  const list = document.getElementById('materialPickList');
-  const title = document.getElementById('pickerTitle');
+  // Build folder tabs
+  const tabsEl = document.getElementById('pickerFolderTabs');
+  tabsEl.innerHTML = '';
 
-  let itemsToShow = [];
-  if (_pickerFolderIdx !== null) {
-    // Show only this supplier's folder
-    const folder = window.materials[_pickerFolderIdx];
-    title.textContent = `📁 ${folder.category} — Select Products`;
-    itemsToShow = folder.items.map((item, ii) => ({ ...item, ci: _pickerFolderIdx, ii }));
-  } else {
-    // Show all folders (from Pick Material button)
-    title.textContent = 'Select Products';
-    window.materials.forEach((folder, ci) => {
-      folder.items.forEach((item, ii) => itemsToShow.push({ ...item, ci, ii, folderName: folder.category }));
-    });
-  }
-
-  if (itemsToShow.length === 0) {
-    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3);">Walang products sa folder na ito. Mag-add muna sa Materials tab.</div>';
+  if (window.materials.length === 0) {
+    document.getElementById('materialPickList').innerHTML =
+      '<div style="text-align:center;padding:30px;color:var(--text3);">Walang materials pa. Mag-add muna sa Materials tab.</div>';
     document.getElementById('materialPickModal').classList.add('open');
     return;
   }
 
-  list.innerHTML = itemsToShow.map((item, idx) => `
-    <div id="picker-row-${idx}" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;transition:all 0.12s;" onclick="togglePickerRow(${idx})" data-ci="${item.ci}" data-ii="${item.ii}">
-      <input type="checkbox" id="pcheck-${idx}" style="width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();togglePickerRow(${idx})">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
-        ${item.code ? `<div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace;">${item.code} · ${item.unit}</div>` : `<div style="font-size:11px;color:var(--text3);">${item.unit}</div>`}
-        ${item.folderName ? `<div style="font-size:10px;color:var(--text3);">📁 ${item.folderName}</div>` : ''}
-      </div>
-      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent2);white-space:nowrap;">₱ ${formatNum(item.price)}</div>
-      <div style="display:flex;align-items:center;gap:4px;" onclick="event.stopPropagation()">
-        <label style="font-size:11px;color:var(--text3);">Qty:</label>
-        <input type="number" id="pqty-${idx}" value="1" min="1" style="width:54px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:13px;text-align:center;background:var(--bg);" onclick="event.stopPropagation()">
-      </div>
-    </div>
-  `).join('');
+  // If folderIdx given, start on that folder; else start on first
+  _pickerFolderIdx = (folderIdx !== undefined && folderIdx !== null) ? folderIdx : 0;
 
-  // Store items ref for later
-  window._pickerItems = itemsToShow;
-  document.getElementById('selectAllCheck').checked = false;
-  document.getElementById('pickerCount').textContent = '0 selected';
+  window.materials.forEach((folder, ci) => {
+    const btn = document.createElement('button');
+    btn.textContent = folder.category;
+    btn.dataset.ci = ci;
+    btn.onclick = function() { _pickerFolderIdx = ci; renderPickerFolder(); };
+    btn.style.cssText = 'padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);transition:all 0.15s;white-space:nowrap;';
+    tabsEl.appendChild(btn);
+  });
+
+  renderPickerFolder();
   document.getElementById('materialPickModal').classList.add('open');
+}
+
+function renderPickerFolder() {
+  // Highlight active folder tab
+  const tabsEl = document.getElementById('pickerFolderTabs');
+  tabsEl.querySelectorAll('button').forEach(btn => {
+    const active = parseInt(btn.dataset.ci) === _pickerFolderIdx;
+    btn.style.background = active ? 'var(--accent)' : 'var(--surface)';
+    btn.style.color = active ? '#fff' : 'var(--text2)';
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+  });
+
+  const folder = window.materials[_pickerFolderIdx];
+  const list = document.getElementById('materialPickList');
+
+  if (!folder || folder.items.length === 0) {
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text3);">Walang items sa folder na ito.</div>';
+    window._pickerItems = [];
+    updatePickerCount();
+    return;
+  }
+
+  const itemsToShow = folder.items.map((item, ii) => ({ ...item, ci: _pickerFolderIdx, ii }));
+  window._pickerItems = itemsToShow;
+
+  list.innerHTML = '';
+  itemsToShow.forEach((item, idx) => {
+    const row = document.createElement('div');
+    row.id = 'picker-row-' + idx;
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;transition:all 0.12s;';
+    row.innerHTML = `
+      <input type="checkbox" id="pcheck-${idx}" style="width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13.5px;font-weight:500;">${item.name}</div>
+        <div style="font-size:11px;color:var(--text3);">${item.desc ? item.desc + ' · ' : ''}${item.unit}</div>
+        ${item.code ? '<div style="font-size:10px;color:var(--text3);font-family:\'DM Mono\',monospace;">' + item.code + '</div>' : ''}
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent2);white-space:nowrap;">P ${formatNum(item.price)}</div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <label style="font-size:11px;color:var(--text3);">Qty:</label>
+        <input type="number" id="pqty-${idx}" value="1" min="1" style="width:54px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:13px;text-align:center;background:var(--bg);">
+      </div>
+    `;
+    // Click row = toggle checkbox (but NOT the checkbox itself or qty input)
+    row.addEventListener('click', function(e) {
+      if (e.target.tagName === 'INPUT') return; // let inputs handle themselves
+      const cb = document.getElementById('pcheck-' + idx);
+      cb.checked = !cb.checked;
+      highlightPickerRow(idx, cb.checked);
+      updatePickerCount();
+    });
+    // Checkbox change
+    row.querySelector('#pcheck-' + idx).addEventListener('change', function() {
+      highlightPickerRow(idx, this.checked);
+      updatePickerCount();
+    });
+    list.appendChild(row);
+  });
+
+  document.getElementById('selectAllCheck').checked = false;
+  updatePickerCount();
+}
+
+function highlightPickerRow(idx, checked) {
+  const row = document.getElementById('picker-row-' + idx);
+  if (!row) return;
+  row.style.borderColor = checked ? 'var(--accent)' : 'var(--border)';
+  row.style.background = checked ? '#fff5f4' : 'var(--surface)';
 }
 
 function togglePickerRow(idx) {
   const cb = document.getElementById('pcheck-' + idx);
-  const row = document.getElementById('picker-row-' + idx);
+  if (!cb) return;
   cb.checked = !cb.checked;
-  row.style.borderColor = cb.checked ? 'var(--accent)' : 'var(--border)';
-  row.style.background = cb.checked ? '#fff5f4' : 'var(--surface)';
+  highlightPickerRow(idx, cb.checked);
   updatePickerCount();
 }
 
@@ -1095,11 +1295,9 @@ function toggleSelectAll(checked) {
   const items = window._pickerItems || [];
   items.forEach((_, idx) => {
     const cb = document.getElementById('pcheck-' + idx);
-    const row = document.getElementById('picker-row-' + idx);
     if (cb) {
       cb.checked = checked;
-      row.style.borderColor = checked ? 'var(--accent)' : 'var(--border)';
-      row.style.background = checked ? '#fff5f4' : 'var(--surface)';
+      highlightPickerRow(idx, checked);
     }
   });
   updatePickerCount();
@@ -1107,53 +1305,66 @@ function toggleSelectAll(checked) {
 
 function updatePickerCount() {
   const items = window._pickerItems || [];
-  const count = items.filter((_, idx) => document.getElementById('pcheck-' + idx)?.checked).length;
-  document.getElementById('pickerCount').textContent = `${count} selected`;
+  const count = items.filter((_, idx) => {
+    const cb = document.getElementById('pcheck-' + idx);
+    return cb && cb.checked;
+  }).length;
+  document.getElementById('pickerCount').textContent = count + ' selected';
 }
 
 function addFromMaterials() {
   if (window.materials.length === 0 || window.materials.every(m => m.items.length === 0)) {
-    alert('Walang window.materials pa. Mag-add muna sa Materials tab.');
+    alert('Walang materials pa. Mag-add muna sa Materials tab.');
     return;
   }
-  openProductPicker(null); // show all folders
+  openProductPicker(null);
 }
 
 function addSelectedProducts() {
   const items = window._pickerItems || [];
-  const selected = items.filter((_, idx) => document.getElementById('pcheck-' + idx)?.checked);
+  const selected = [];
+  items.forEach((item, idx) => {
+    const cb = document.getElementById('pcheck-' + idx);
+    if (cb && cb.checked) {
+      const qtyInput = document.getElementById('pqty-' + idx);
+      const qty = parseFloat(qtyInput ? qtyInput.value : 1) || 1;
+      const price = parseFloat(item.price) || 0;
+      selected.push({ item, qty, price });
+    }
+  });
+
   if (selected.length === 0) {
-    showToast('⚠️ Walang napili. Mag-check ng kahit isang product.');
+    showToast('Walang napili. Mag-check ng kahit isang item.');
     return;
   }
 
-  selected.forEach(item => {
-    const qtyInput = document.getElementById('pqty-' + items.indexOf(item));
-    const qty = parseFloat(qtyInput?.value) || 1;
-    const price = item.price || 0;
+  // Remove trailing blank rows first
+  window._items = window._items.filter(i => i.desc && i.desc.trim() !== '');
+
+  selected.forEach(({ item, qty, price }) => {
     window._items.push({
       no: window._items.length + 1,
-      desc: item.name,
+      desc: item.name || '',
+      itemDesc: item.desc || '',
       code: item.code || '',
-      qty,
+      qty: qty,
       unit: item.unit || 'pc',
-      price,
+      price: price,
       amount: qty * price
     });
   });
 
-  // Remove any blank trailing rows then add one fresh empty row
-  window._items = window._items.filter(i => i.desc);
+  // Always have one blank row at end
   window._items.push({ no: window._items.length + 1, desc: '', code: '', qty: 1, unit: 'pc', price: '', amount: 0 });
-  window._items.forEach((it, i) => it.no = i + 1);
+  window._items.forEach((it, i) => { it.no = i + 1; });
 
   renderItems();
   document.getElementById('materialPickModal').classList.remove('open');
   switchTabDirect('po');
-  showToast(`✅ ${selected.length} item(s) added to PO`);
+  showToast(selected.length + ' item(s) added to PO');
 }
 
-// Legacy pickMaterial (kept for compatibility)
+// Legacy
 function pickMaterial(ci, ii) {
   const item = window.materials[ci].items[ii];
   addItem({ no: window._items.length + 1, desc: item.name, code: item.code, qty: 1, unit: item.unit, price: item.price, amount: item.price });
@@ -1175,7 +1386,7 @@ async function savePO() {
   localStorage.setItem('jvt_pos', JSON.stringify(window.savedPOs));
   // Save to Firebase
   await window.savePOToCloud(po);
-  showToast('✅ PO saved to Firebase!');
+  clearDraft(); showToast('✅ PO saved!');
   renderSummary();
 }
 
@@ -1208,6 +1419,7 @@ function getPOData() {
 }
 
 function resetPO() {
+  clearDraft();
   if (!confirm('Start a new PO? Unsaved changes will be lost.')) return;
   window._items = [{ no: 1, desc: '', code: '', qty: '', unit: 'pc', price: '', amount: 0 }];
   ['suppName','suppContact','suppTel','suppFax','suppAddress'].forEach(id => document.getElementById(id).value = '');
@@ -1359,12 +1571,16 @@ function buildPreviewHTML(po) {
 
   const itemsHTML = (po.items || []).filter(i => i.desc).map((item, idx) => `
     <tr>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;">${idx + 1}</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;color:#000;">${item.desc}${item.code ? '<br><span style="font-size:9px;color:#333;font-family:monospace;font-weight:600;">' + item.code + '</span>' : ''}</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;">${item.qty}</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;">${item.unit}</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;color:#000;">( ${formatNum(item.price)} )</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;">( ${formatNum(item.amount)} )</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${idx + 1}</td>
+      <td style="border:1.5px solid #555;padding:7px 10px;color:#000;">
+        <div style="font-size:11.5px;font-weight:700;color:#000;line-height:1.4;">${item.desc}</div>
+        ${item.itemDesc ? '<div style="font-size:10.5px;color:#111;line-height:1.4;margin-top:2px;">' + item.itemDesc + '</div>' : ''}
+        ${item.code ? '<div style="font-size:9.5px;font-family:monospace;color:#333;font-weight:700;letter-spacing:0.5px;margin-top:2px;">' + item.code + '</div>' : ''}
+      </td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${item.qty}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${item.unit}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;color:#000;vertical-align:middle;">( ${formatNum(item.price)} )</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;vertical-align:middle;">( ${formatNum(item.amount)} )</td>
     </tr>
   `).join('');
 
@@ -1572,6 +1788,8 @@ window.formatNum = formatNum;
 window.formatDateDisplay = formatDateDisplay;
 window.numToWords = numToWords;
 window.convertHundreds = convertHundreds;
+window.highlightPickerRow = highlightPickerRow;
+window.renderPickerFolder = renderPickerFolder;
 
 </script>
 
