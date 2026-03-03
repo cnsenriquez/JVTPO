@@ -620,6 +620,7 @@ window.COMPANIES = {
       return now.getFullYear() + '-' + months[now.getMonth()] + '-';
     },
     firestoreKey: 'jvt_data',
+    poCollection: 'jvt_purchase_orders',
     localKeySuppliers: 'jvt_suppliers',
     localKeyMaterials: 'jvt_materials',
     localKeyPOs: 'jvt_pos',
@@ -941,6 +942,7 @@ window.COMPANIES = {
       return now.getFullYear() + '-' + months[now.getMonth()] + '-';
     },
     firestoreKey: 'litrad_data',
+    poCollection: 'litrad_purchase_orders',
     localKeySuppliers: 'litrad_suppliers',
     localKeyMaterials: 'litrad_materials',
     localKeyPOs: 'litrad_pos',
@@ -961,7 +963,7 @@ function generateNextPONumber() {
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const prefix = now.getFullYear() + '-' + months[now.getMonth()] + '-';
   let maxNum = 0;
-  (window.savedPOs || []).forEach(po => {
+  (window.savedPOs || []).filter(po => !po.company || po.company === co.id).forEach(po => {
     if (po.poNumber) {
       const parts = po.poNumber.split('-');
       const n = parseInt(parts[parts.length - 1]);
@@ -1051,6 +1053,24 @@ function updateCompanyUI() {
       <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);letter-spacing:0.5px;margin-bottom:8px;display:block;">Link POs to this Project</label>
       <div id="projPOCheckboxes" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:8px;padding:10px;background:var(--bg);"></div>
     </div>
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);letter-spacing:0.5px;margin:0;">🧾 Other Expenses / Cash Purchases</label>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="window.addOtherExpense()" style="font-size:11px;padding:3px 10px;">+ Add Item</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">Items bought outside of PO system (e.g. pintura, small tools, cash purchases)</div>
+      <div style="display:grid;grid-template-columns:1.2fr 1.4fr 52px 52px 90px 90px 1fr 28px;gap:4px;margin-bottom:3px;padding:0 2px;">
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Shop/Source</span>
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Item Name</span>
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center;">Qty</span>
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:center;">Unit</span>
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:right;">Unit Price</span>
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;text-align:right;">Total</span>
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;">Notes</span>
+        <span></span>
+      </div>
+      <div id="otherExpensesContainer" style="display:flex;flex-direction:column;gap:2px;"></div>
+    </div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
       <button class="btn btn-secondary" onclick="closeProjectModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
@@ -1114,14 +1134,14 @@ window.saveMaterials = async function() {
 window.savePOToCloud = async function(po) {
   try {
     const id = po.poNumber.replace(/[^a-zA-Z0-9\-]/g,'_');
-    await setDoc(doc(db, 'purchase_orders', id), po);
+    await setDoc(doc(db, getCompany().poCollection || 'purchase_orders', id), po);
   } catch(e) { console.error('savePO error:', e); showToast('⚠️ Save failed: ' + e.message); }
 };
 
 window.deletePOFromCloud = async function(poNumber) {
   try {
     const id = poNumber.replace(/[^a-zA-Z0-9\-]/g,'_');
-    await deleteDoc(doc(db, 'purchase_orders', id));
+    await deleteDoc(doc(db, getCompany().poCollection || 'purchase_orders', id));
   } catch(e) { console.error('deletePO error:', e); }
 };
 
@@ -1137,10 +1157,22 @@ async function loadAllData() {
     });
 
     // Load POs
-    const posSnap = await getDocs(collection(db, 'purchase_orders'));
+    const posSnap = await getDocs(collection(db, getCompany().poCollection || 'purchase_orders'));
     window.savedPOs = [];
     posSnap.forEach(d => window.savedPOs.push(d.data()));
     window.savedPOs.sort((a,b) => (a.poNumber || '').localeCompare(b.poNumber || ''));
+
+    // Load Projects
+    const projKey = getCompany().localKeyPOs.replace('_pos','_projects');
+    try {
+      const projDoc = await getDocs(collection(db, getCompany().firestoreKey + '_projects'));
+      let loadedProjects = [];
+      projDoc.forEach(d => { if (d.id === 'projects') loadedProjects = d.data().list || []; });
+      window.projects = loadedProjects.length > 0 ? loadedProjects 
+        : JSON.parse(localStorage.getItem(projKey) || '[]');
+    } catch(_pe) {
+      window.projects = JSON.parse(localStorage.getItem(projKey) || '[]');
+    }
 
     // Seed sample data if empty
     // Sync: merge seed suppliers — add any missing ones by name
@@ -1202,6 +1234,7 @@ async function loadAllData() {
     renderMaterialTabs();
     renderMaterials();
     renderSummary();
+    if (typeof renderProjects === 'function') renderProjects();
     populateSupplierSelect();
     window._draftPaused = false;
 
@@ -1229,6 +1262,7 @@ async function loadAllData() {
     renderMaterialTabs();
     renderMaterials();
     renderSummary();
+    if (typeof renderProjects === 'function') renderProjects();
     populateSupplierSelect();
     window._draftPaused = false;
     applyDraft(draftData2);
@@ -1241,7 +1275,6 @@ window.loadAllData = loadAllData;
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof setupEventDelegation === 'function') setupEventDelegation();
   updateCompanyUI();
-  // Only set blank items if no draft exists; loadAllData will restore draft
   const hasDraft = !!localStorage.getItem(('jvt_po_draft_' + window.ACTIVE_COMPANY));
   if (!hasDraft) {
     window._items = [{ no: 1, desc: '', code: '', qty: '', unit: 'pc', price: '', amount: 0 }];
@@ -1250,8 +1283,115 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAllData();
 });
 
-</script>
-<script>
+function viewProject(idx) {
+  const proj = window.projects[idx];
+  const linkedPOs = (proj.poNumbers || []).map(pn => {
+    return (window.savedPOs || []).find(p => p.poNumber === pn) || { poNumber: pn, supplier: { name: '—' }, total: 0, items: [] };
+  });
+  const poTotal = linkedPOs.reduce((s, po) => s + (po.total || 0), 0);
+  const expenseTotal = (proj.otherExpenses || []).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  const grandTotal = poTotal + expenseTotal;
+
+  // Group POs by supplier
+  const bySupplier = {};
+  linkedPOs.forEach(po => {
+    const sname = po.supplier?.name || '—';
+    if (!bySupplier[sname]) bySupplier[sname] = { pos: [], total: 0 };
+    bySupplier[sname].pos.push(po);
+    bySupplier[sname].total += po.total || 0;
+  });
+
+  // Build supplier blocks
+  const supplierBlocks = Object.entries(bySupplier).map(([sname, data]) => {
+    const allItems = [];
+    data.pos.forEach(po => {
+      (po.items || []).filter(i => i.desc).forEach(i => {
+        allItems.push({ ...i, poNumber: po.poNumber, paymentTerms: po.paymentTerms || '' });
+      });
+    });
+    const itemRows = allItems.map((item, ii) =>
+      '<tr style="border-bottom:1px solid #e5e7eb;">' +
+      '<td style="padding:6px 10px;font-size:12px;color:#222;">' + (item.desc || '') + '</td>' +
+      '<td style="padding:6px 10px;font-size:11px;color:#555;">' + (item.itemDesc || '') + '</td>' +
+      '<td style="padding:6px 10px;text-align:center;font-size:12px;">' + (item.qty || '') + '</td>' +
+      '<td style="padding:6px 10px;text-align:center;font-size:12px;color:#555;">' + (item.unit || '') + '</td>' +
+      '<td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:12px;">' + (item.price ? formatNum(item.price) : '') + '</td>' +
+      '<td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:12px;font-weight:600;">' + (item.amount ? formatNum(item.amount) : '') + '</td>' +
+      '<td style="padding:6px 10px;font-size:10px;color:#888;">' + (item.paymentTerms || '') + '</td>' +
+      '</tr>'
+    ).join('');
+    const poNums = data.pos.map(p => '<span style="font-size:10px;background:#f0f0f0;border-radius:4px;padding:2px 6px;margin-right:4px;">' + p.poNumber + '</span>').join('');
+    return '<div style="margin-bottom:24px;">' +
+      '<div style="background:#1a1a2e;color:#fff;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;">' +
+      '<span style="font-weight:700;font-size:13px;letter-spacing:0.5px;">' + sname + '</span>' +
+      '<span style="font-family:monospace;font-size:13px;font-weight:700;">₱ ' + formatNum(data.total) + '</span></div>' +
+      '<div style="padding:4px 12px;background:#f8f8f8;border-left:3px solid #1a1a2e;font-size:11px;color:#666;">' + poNums + '</div>' +
+      '<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-top:none;">' +
+      '<thead><tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;">' +
+      '<th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Item / Description</th>' +
+      '<th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Specs</th>' +
+      '<th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Qty</th>' +
+      '<th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Unit</th>' +
+      '<th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Unit Price</th>' +
+      '<th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Total</th>' +
+      '<th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Terms</th>' +
+      '</tr></thead><tbody>' + itemRows + '</tbody>' +
+      '<tfoot><tr style="background:#fef9c3;border-top:2px solid #eab308;">' +
+      '<td colspan="5" style="padding:7px 10px;text-align:right;font-weight:700;font-size:12px;">SUBTOTAL</td>' +
+      '<td style="padding:7px 10px;text-align:right;font-family:monospace;font-weight:800;font-size:13px;">' + formatNum(data.total) + '</td>' +
+      '<td></td></tr></tfoot></table></div>';
+  }).join('');
+
+  // Build other expenses block
+  const categoryLabels = { materials:'Materials', labor:'Labor', transport:'Transport', tools:'Tools/Equipment', other:'Other' };
+  const otherExpensesBlock = (proj.otherExpenses || []).length > 0 ?
+    '<div style="margin-bottom:24px;">' +
+    '<div style="background:#92400e;color:#fff;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;">' +
+    '<span style="font-weight:700;font-size:13px;letter-spacing:0.5px;">💸 Other Expenses (non-PO)</span>' +
+    '<span style="font-family:monospace;font-size:13px;font-weight:700;">₱ ' + formatNum(expenseTotal) + '</span></div>' +
+    '<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-top:none;">' +
+    '<thead><tr style="background:#fef9c3;border-bottom:2px solid #e5e7eb;">' +
+    '<th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;">Shop / Source</th>' +
+    '<th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;">Item Name</th>' +
+    '<th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;">Qty</th>' +
+    '<th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;">Unit</th>' +
+    '<th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;">Unit Price</th>' +
+    '<th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;">Total</th>' +
+    '<th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;">Notes</th>' +
+    '</tr></thead><tbody>' +
+    (proj.otherExpenses || []).map(function(e) {
+      const total = e.amount || (e.qty * e.price) || 0;
+      return '<tr style="border-bottom:1px solid #e5e7eb;">' +
+        '<td style="padding:6px 10px;font-size:12px;color:#555;">' + (e.shop || '—') + '</td>' +
+        '<td style="padding:6px 10px;font-size:12px;color:#222;font-weight:600;">' + (e.name || '—') + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;font-size:12px;">' + (e.qty || '—') + '</td>' +
+        '<td style="padding:6px 10px;text-align:center;font-size:12px;color:#555;">' + (e.unit || '') + '</td>' +
+        '<td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:12px;">' + (e.price ? '₱ ' + formatNum(e.price) : '—') + '</td>' +
+        '<td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:12px;font-weight:700;">₱ ' + formatNum(total) + '</td>' +
+        '<td style="padding:6px 10px;font-size:11px;color:#888;">' + (e.notes || '') + '</td>' +
+        '</tr>';
+    }).join('') +
+    '</tbody><tfoot><tr style="background:#fef9c3;border-top:2px solid #eab308;">' +
+    '<td colspan="3" style="padding:7px 10px;text-align:right;font-weight:700;font-size:12px;">SUBTOTAL</td>' +
+    '<td style="padding:7px 10px;text-align:right;font-family:monospace;font-weight:800;font-size:13px;">₱ ' + formatNum(expenseTotal) + '</td>' +
+    '</tr></tfoot></table></div>'
+  : '';
+
+  const grandTotalRow =
+    '<div style="background:#1a1a2e;color:#fff;border-radius:6px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;">' +
+    '<div><div style="font-weight:700;font-size:14px;letter-spacing:1px;">TOTAL FOR ' + proj.name.toUpperCase() + '</div>' +
+    (expenseTotal > 0 ? '<div style="font-size:10px;color:#fde68a;margin-top:2px;">POs: ₱' + formatNum(poTotal) + ' + Other: ₱' + formatNum(expenseTotal) + '</div>' : '') +
+    '</div><span style="font-family:monospace;font-size:20px;font-weight:800;color:#fef08a;">₱ ' + formatNum(grandTotal) + '</span></div>';
+
+  document.getElementById('projectViewTitle').textContent = proj.name;
+  document.getElementById('projectViewContent').innerHTML =
+    (proj.notes ? '<div style="font-size:12px;color:#666;margin-bottom:14px;padding:8px 12px;background:#f8f8f8;border-radius:6px;">' + proj.notes + '</div>' : '') +
+    supplierBlocks + otherExpensesBlock + grandTotalRow;
+
+  window._viewingProjectIdx = idx;
+  document.getElementById('projectViewModal').classList.add('open');
+}
+
 
 function showLoadingOverlay(show) {
   let el = document.getElementById('loadingOverlay');
@@ -1290,6 +1430,7 @@ if (!window.savedPOs) window.savedPOs = [];
 if (!window.suppliers) window.suppliers = [];
 if (!window.materials) window.materials = [];
 if (!window.projects) window.projects = [];
+let _editingProjectIdx = null;
 
 function addItem(prefill) {
   window._items.push(prefill || { no: window._items.length + 1, desc: '', code: '', qty: 1, unit: 'pc', price: '', amount: 0 });
@@ -1368,7 +1509,7 @@ window.projects = [];
 
 async function saveProjects() {
   try {
-    await setDoc(doc(db, getCompany().firestoreKey, 'projects'), { list: window.projects });
+    await setDoc(doc(db, getCompany().firestoreKey + '_projects', 'projects'), { list: window.projects });
   } catch(e) {}
   localStorage.setItem(getCompany().localKeyPOs.replace('_pos','_projects'), JSON.stringify(window.projects));
 }
@@ -1379,17 +1520,21 @@ function renderProjects() {
   if (!list) return;
   if (!window.projects || window.projects.length === 0) {
     list.innerHTML = '';
-    empty.style.display = 'block';
+    if (empty) empty.style.display = 'block';
     return;
   }
-  empty.style.display = 'none';
+  if (empty) empty.style.display = 'none';
 
   list.innerHTML = window.projects.map((proj, pi) => {
     const linkedPOs = (proj.poNumbers || []).map(pn => {
       const po = (window.savedPOs || []).find(p => p.poNumber === pn);
       return po ? { ...po } : { poNumber: pn, supplier: { name: '—' }, total: 0 };
     });
-    const grandTotal = linkedPOs.reduce((s, po) => s + (po.total || 0), 0);
+    const otherExpenses = proj.otherExpenses || [];
+    const otherTotal = otherExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+    const poTotal = linkedPOs.reduce((s, po) => s + (po.total || 0), 0);
+    const grandTotal = poTotal + otherTotal;
+
     const bySupplier = {};
     linkedPOs.forEach(po => {
       const sname = po.supplier?.name || '—';
@@ -1403,6 +1548,22 @@ function renderProjects() {
         <span style="font-family:monospace;font-weight:600;">₱ ${formatNum(total)}</span>
       </div>`
     ).join('');
+
+    const otherExpensesHTML = otherExpenses.length > 0 ? `
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+        <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">🧾 Other Expenses / Cash Purchases</div>
+        ${otherExpenses.map(e => `
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--border);">
+            <span style="color:var(--text1);flex:1;">${e.name}${e.notes ? ` <span style="color:var(--text3);font-size:11px;">(${e.notes})</span>` : ''}</span>
+            <span style="color:var(--text2);font-size:11px;margin:0 10px;">${e.qty} ${e.unit}</span>
+            <span style="font-family:monospace;font-weight:600;">₱ ${formatNum(e.amount)}</span>
+          </div>
+        `).join('')}
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:5px 0;font-weight:700;color:var(--text1);">
+          <span>Other Expenses Subtotal</span>
+          <span style="font-family:monospace;">₱ ${formatNum(otherTotal)}</span>
+        </div>
+      </div>` : '';
 
     return `<div class="card" style="padding:20px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
@@ -1421,10 +1582,12 @@ function renderProjects() {
         <div style="background:var(--bg);border-radius:8px;padding:10px 16px;flex:1;min-width:120px;">
           <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Total Spent</div>
           <div style="font-size:20px;font-weight:800;color:var(--accent);font-family:monospace;">₱ ${formatNum(grandTotal)}</div>
+          ${otherTotal > 0 ? `<div style="font-size:10px;color:var(--text3);">PO: ₱${formatNum(poTotal)} + Other: ₱${formatNum(otherTotal)}</div>` : ''}
         </div>
         <div style="background:var(--bg);border-radius:8px;padding:10px 16px;flex:1;min-width:120px;">
           <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Linked POs</div>
           <div style="font-size:20px;font-weight:800;color:var(--text1);">${linkedPOs.length}</div>
+          ${otherExpenses.length > 0 ? `<div style="font-size:10px;color:var(--text3);">+${otherExpenses.length} other item${otherExpenses.length > 1 ? 's' : ''}</div>` : ''}
         </div>
         <div style="background:var(--bg);border-radius:8px;padding:10px 16px;flex:1;min-width:120px;">
           <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Suppliers</div>
@@ -1433,11 +1596,85 @@ function renderProjects() {
       </div>
 
       ${supplierRows ? `<div style="margin-top:8px;"><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Cost by Supplier</div>${supplierRows}</div>` : ''}
+      ${otherExpensesHTML}
     </div>`;
   }).join('');
 }
 
-let _editingProjectIdx = null;
+
+
+// ========== OTHER EXPENSES (non-PO cash purchases) ==========
+function addOtherExpense(expense) {
+  const container = document.getElementById('otherExpensesContainer');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'other-expense-row';
+  row.style.cssText = 'display:grid;grid-template-columns:1.2fr 1.4fr 52px 52px 90px 90px 1fr 28px;gap:4px;align-items:center;margin-bottom:5px;';
+
+  const shopVal  = expense?.shop  || '';
+  const nameVal  = expense?.name  || '';
+  const qtyVal   = expense?.qty   || '';
+  const unitVal  = expense?.unit  || 'pc';
+  const priceVal = expense?.price || '';
+  const notesVal = expense?.notes || '';
+  const amtVal   = expense?.amount || (qtyVal && priceVal ? qtyVal * priceVal : '');
+
+  const mkInput = (ph, val, field, extra) =>
+    '<input type="text" placeholder="' + ph + '" data-field="' + field + '" style="padding:5px 6px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;width:100%;" ' + (extra||'') + '>';
+  const mkNum = (ph, val, field, extra) =>
+    '<input type="number" placeholder="' + ph + '" data-field="' + field + '" min="0" step="any" style="padding:5px 4px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;width:100%;text-align:center;" ' + (extra||'') + '>';
+
+  row.innerHTML =
+    mkInput('Shop / Source', shopVal, 'shop') +
+    mkInput('Item name (e.g. Pintura)', nameVal, 'name') +
+    mkNum('Qty', qtyVal, 'qty') +
+    mkInput('Unit', unitVal, 'unit') +
+    mkNum('Unit Price', priceVal, 'price') +
+    '<input type="number" placeholder="Total" data-field="amount" readonly style="padding:5px 6px;border:1.5px solid var(--border);border-radius:5px;font-size:12px;width:100%;background:#f8f8f8;font-weight:700;text-align:right;" tabindex="-1">' +
+    mkInput('Notes (optional)', notesVal, 'notes') +
+    '<button type="button" style="background:none;border:none;color:#e74c3c;cursor:pointer;font-size:18px;padding:0;line-height:1;" data-action="remove-expense">×</button>';
+
+  // Set values
+  row.querySelector('[data-field="shop"]').value  = shopVal;
+  row.querySelector('[data-field="name"]').value  = nameVal;
+  row.querySelector('[data-field="qty"]').value   = qtyVal;
+  row.querySelector('[data-field="unit"]').value  = unitVal;
+  row.querySelector('[data-field="price"]').value = priceVal;
+  row.querySelector('[data-field="amount"]').value = amtVal || '';
+  row.querySelector('[data-field="notes"]').value = notesVal;
+
+  // Auto-compute total
+  function recalc() {
+    const q = parseFloat(row.querySelector('[data-field="qty"]').value) || 0;
+    const p = parseFloat(row.querySelector('[data-field="price"]').value) || 0;
+    row.querySelector('[data-field="amount"]').value = q && p ? (q * p).toFixed(2) : '';
+  }
+  row.querySelector('[data-field="qty"]').addEventListener('input', recalc);
+  row.querySelector('[data-field="price"]').addEventListener('input', recalc);
+
+  row.querySelector('[data-action="remove-expense"]').addEventListener('click', function() { row.remove(); });
+  container.appendChild(row);
+}
+
+function renderOtherExpenseRows(list) {
+  const container = document.getElementById('otherExpensesContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  (list || []).forEach(function(e) { addOtherExpense(e); });
+}
+
+function getOtherExpenses() {
+  const rows = document.querySelectorAll('.other-expense-row');
+  return Array.from(rows).map(function(row) {
+    const shop  = row.querySelector('[data-field="shop"]').value.trim();
+    const name  = row.querySelector('[data-field="name"]').value.trim();
+    const qty   = parseFloat(row.querySelector('[data-field="qty"]').value) || 0;
+    const unit  = row.querySelector('[data-field="unit"]').value.trim() || 'pc';
+    const price = parseFloat(row.querySelector('[data-field="price"]').value) || 0;
+    const notes = row.querySelector('[data-field="notes"]').value.trim();
+    return { shop, name, qty, unit, price, amount: qty * price, notes };
+  }).filter(function(e) { return e.name || e.shop; });
+}
 
 function openAddProjectModal() {
   _editingProjectIdx = null;
@@ -1445,16 +1682,19 @@ function openAddProjectModal() {
   document.getElementById('projName').value = '';
   document.getElementById('projNotes').value = '';
   renderProjPOCheckboxes([]);
+  renderOtherExpenseRows([]);
   document.getElementById('projectModal').classList.add('open');
 }
 
 function editProject(idx) {
   _editingProjectIdx = idx;
   const proj = window.projects[idx];
+  window._editingExpenses = JSON.parse(JSON.stringify(proj.otherExpenses || []));
   document.getElementById('projectModalTitle').textContent = 'Edit Project';
   document.getElementById('projName').value = proj.name || '';
   document.getElementById('projNotes').value = proj.notes || '';
   renderProjPOCheckboxes(proj.poNumbers || []);
+  renderOtherExpenseRows(window._editingExpenses);
   document.getElementById('projectModal').classList.add('open');
 }
 
@@ -1487,7 +1727,8 @@ async function saveProject() {
   const checkboxes = document.querySelectorAll('#projPOCheckboxes input[type=checkbox]:checked');
   const poNumbers = Array.from(checkboxes).map(cb => cb.value);
 
-  const proj = { name, notes, poNumbers, updatedAt: new Date().toISOString() };
+  const otherExpenses = getOtherExpenses();
+  const proj = { name, notes, poNumbers, otherExpenses, updatedAt: new Date().toISOString() };
   if (_editingProjectIdx !== null) {
     window.projects[_editingProjectIdx] = proj;
   } else {
@@ -1508,93 +1749,7 @@ async function deleteProject(idx) {
   showToast('🗑 Project deleted');
 }
 
-function viewProject(idx) {
-  const proj = window.projects[idx];
-  const linkedPOs = (proj.poNumbers || []).map(pn => {
-    return (window.savedPOs || []).find(p => p.poNumber === pn) || { poNumber: pn, supplier: { name: '—' }, total: 0, items: [] };
-  });
-  const grandTotal = linkedPOs.reduce((s, po) => s + (po.total || 0), 0);
 
-  // Group POs by supplier
-  const bySupplier = {};
-  linkedPOs.forEach(po => {
-    const sname = po.supplier?.name || '—';
-    if (!bySupplier[sname]) bySupplier[sname] = { pos: [], total: 0 };
-    bySupplier[sname].pos.push(po);
-    bySupplier[sname].total += po.total || 0;
-  });
-
-  // Build Excel-style table per supplier
-  const supplierBlocks = Object.entries(bySupplier).map(([sname, data]) => {
-    // Collect all items across all POs for this supplier
-    const allItems = [];
-    data.pos.forEach(po => {
-      (po.items || []).filter(i => i.desc).forEach(i => {
-        allItems.push({ ...i, poNumber: po.poNumber, paymentTerms: po.paymentTerms || '' });
-      });
-    });
-
-    const itemRows = allItems.map((item, ii) => `
-      <tr style="border-bottom:1px solid #e5e7eb;">
-        <td style="padding:6px 10px;font-size:12px;color:#222;">${item.desc}</td>
-        <td style="padding:6px 10px;font-size:11px;color:#555;">${item.itemDesc || ''}</td>
-        <td style="padding:6px 10px;text-align:center;font-size:12px;">${item.qty || ''}</td>
-        <td style="padding:6px 10px;text-align:center;font-size:12px;color:#555;">${item.unit || ''}</td>
-        <td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:12px;">${item.price ? formatNum(item.price) : ''}</td>
-        <td style="padding:6px 10px;text-align:right;font-family:monospace;font-size:12px;font-weight:600;">${item.amount ? formatNum(item.amount) : ''}</td>
-        <td style="padding:6px 10px;font-size:10px;color:#888;">${item.paymentTerms}</td>
-      </tr>`).join('');
-
-    const poNums = data.pos.map(p => `<span style="font-size:10px;background:#f0f0f0;border-radius:4px;padding:2px 6px;margin-right:4px;">${p.poNumber}</span>`).join('');
-
-    return `
-      <div style="margin-bottom:24px;">
-        <div style="background:#1a1a2e;color:#fff;padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-weight:700;font-size:13px;letter-spacing:0.5px;">${sname}</span>
-          <span style="font-family:monospace;font-size:13px;font-weight:700;">₱ ${formatNum(data.total)}</span>
-        </div>
-        <div style="padding:4px 12px;background:#f8f8f8;border-left:3px solid #1a1a2e;font-size:11px;color:#666;">${poNums}</div>
-        <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-top:none;">
-          <thead>
-            <tr style="background:#f3f4f6;border-bottom:2px solid #e5e7eb;">
-              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Item / Description</th>
-              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Specs</th>
-              <th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Qty</th>
-              <th style="padding:6px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Unit</th>
-              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Unit Price</th>
-              <th style="padding:6px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Total</th>
-              <th style="padding:6px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#666;letter-spacing:0.5px;">Terms</th>
-            </tr>
-          </thead>
-          <tbody>${itemRows}</tbody>
-          <tfoot>
-            <tr style="background:#fef9c3;border-top:2px solid #eab308;">
-              <td colspan="5" style="padding:7px 10px;text-align:right;font-weight:700;font-size:12px;">SUBTOTAL</td>
-              <td style="padding:7px 10px;text-align:right;font-family:monospace;font-weight:800;font-size:13px;">${formatNum(data.total)}</td>
-              <td></td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>`;
-  }).join('');
-
-  const grandTotalRow = `
-    <div style="background:#1a1a2e;color:#fff;border-radius:6px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-      <span style="font-weight:700;font-size:14px;letter-spacing:1px;">TOTAL FOR ${proj.name.toUpperCase()}</span>
-      <span style="font-family:monospace;font-size:20px;font-weight:800;color:#fef08a;">₱ ${formatNum(grandTotal)}</span>
-    </div>`;
-
-  document.getElementById('projectViewTitle').textContent = proj.name;
-  document.getElementById('projectViewContent').innerHTML = `
-    ${proj.notes ? `<div style="font-size:12px;color:#666;margin-bottom:14px;padding:8px 12px;background:#f8f8f8;border-radius:6px;">${proj.notes}</div>` : ''}
-    ${supplierBlocks}
-    ${grandTotalRow}
-  `;
-
-  // Store current project idx for PDF export
-  window._viewingProjectIdx = idx;
-  document.getElementById('projectViewModal').classList.add('open');
-}
 
 function printProjectSummary() {
   const idx = window._viewingProjectIdx;
@@ -2298,7 +2453,8 @@ function getPOData() {
     items: window._items.map(i => ({ ...i })),
     total,
     savedAt: new Date().toISOString(),
-    status: 'saved'
+    status: 'saved',
+    company: getCompany().id
   };
 }
 
@@ -2321,7 +2477,14 @@ function renderSummary() {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>';
     return;
   }
-  tbody.innerHTML = (window.savedPOs || []).map((po, i) => `
+  const _activeCo = getCompany().id;
+  const _displayPOs = (window.savedPOs || []).map((po, i) => ({ po, realIdx: i }))
+    .filter(({ po }) => !po.company || po.company === _activeCo);
+  if (_displayPOs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = _displayPOs.map(({ po, realIdx }) => `
     <tr>
       <td><span class="po-num-tag">${po.poNumber}</span></td>
       <td>${po.date || '—'}</td>
@@ -2330,9 +2493,9 @@ function renderSummary() {
       <td><span class="status-badge status-saved">Saved</span></td>
       <td>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-secondary btn-sm" data-action="edit-po" data-idx="${i}">✏️ Edit</button>
-          <button class="btn btn-sm btn-outline" data-action="preview-po" data-idx="${i}">👁 View</button>
-          <button class="btn btn-sm" style="color:var(--accent);border:1px solid var(--accent);background:transparent;" data-action="delete-po" data-idx="${i}">🗑</button>
+          <button class="btn btn-secondary btn-sm" data-action="edit-po" data-idx="${realIdx}">✏️ Edit</button>
+          <button class="btn btn-sm btn-outline" data-action="preview-po" data-idx="${realIdx}">👁 View</button>
+          <button class="btn btn-sm" style="color:var(--accent);border:1px solid var(--accent);background:transparent;" data-action="delete-po" data-idx="${realIdx}">🗑</button>
         </div>
       </td>
     </tr>
@@ -2646,6 +2809,12 @@ function setupEventDelegation() {
       // Items
       case 'remove-item': removeItem(idx); break;
       case 'delete-category': deleteCategory(ci); break;
+      case 'remove-expense':
+        if (window._editingExpenses) {
+          window._editingExpenses.splice(idx, 1);
+          renderOtherExpenseRows(window._editingExpenses);
+        }
+        break;
     }
   });
 }
@@ -2710,7 +2879,40 @@ window.numToWords = numToWords;
 window.convertHundreds = convertHundreds;
 window.highlightPickerRow = highlightPickerRow;
 window.renderPickerFolder = renderPickerFolder;
+window.addOtherExpense = addOtherExpense;
 window.setupEventDelegation = setupEventDelegation;
+window.addOtherExpense = addOtherExpense;
+window.renderOtherExpenseRows = renderOtherExpenseRows;
+window.getOtherExpenses = getOtherExpenses;
+
+
+addSelectedProducts = addSelectedProducts;
+window.pickMaterial = pickMaterial;
+window.savePO = savePO;
+window.getPOData = getPOData;
+window.resetPO = resetPO;
+window.renderSummary = renderSummary;
+window.loadPOEdit = loadPOEdit;
+window.switchTabDirect = switchTabDirect;
+window.deletePO = deletePO;
+window.previewSavedPO = previewSavedPO;
+window.showPreview = showPreview;
+window.closePreview = closePreview;
+window.getPOFilename = getPOFilename;
+window.printPO = printPO;
+window.exportPDF = exportPDF;
+window.buildPreviewHTML = buildPreviewHTML;
+window.formatNum = formatNum;
+window.formatDateDisplay = formatDateDisplay;
+window.numToWords = numToWords;
+window.convertHundreds = convertHundreds;
+window.highlightPickerRow = highlightPickerRow;
+window.renderPickerFolder = renderPickerFolder;
+window.addOtherExpense = addOtherExpense;
+window.setupEventDelegation = setupEventDelegation;
+window.addOtherExpense = addOtherExpense;
+window.renderOtherExpenseRows = renderOtherExpenseRows;
+window.getOtherExpenses = getOtherExpenses;
 
 
 </script>
