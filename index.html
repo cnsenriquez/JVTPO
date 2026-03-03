@@ -2422,8 +2422,11 @@ async function savePO() {
 function getPOData() {
   const vatOption = document.getElementById('vatOption').value;
   const subtotal = (window._items || []).reduce((s, i) => s + (i.amount || 0), 0);
-  const vatAmount = vatOption === 'add' ? subtotal * 0.12 : 0;
-  const total = subtotal + vatAmount;
+  const _discType = document.getElementById('discountType') ? document.getElementById('discountType').value : 'none';
+  const _discVal = parseFloat(document.getElementById('discountValue') ? document.getElementById('discountValue').value : 0) || 0;
+  const _discAmt = _discType === 'percent' ? subtotal * (_discVal / 100) : (_discType === 'amount' ? _discVal : 0);
+  const vatAmount = vatOption === 'add' ? (subtotal - _discAmt) * 0.12 : 0;
+  const total = (subtotal - _discAmt) + vatAmount;
   return {
     poNumber: document.getElementById('poNumber').value,
     date: document.getElementById('poDate').value || new Date().toISOString().split('T')[0],
