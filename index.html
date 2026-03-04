@@ -3126,6 +3126,7 @@ function buildPreviewHTML(po) {
           <div style="font-size:10px;color:#333;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">PO NO.</div>
           <div style="font-family:monospace;font-size:17px;font-weight:700;color:#000;">${po.poNumber}</div>
           <div style="font-size:11px;color:#333;margin-top:2px;font-weight:500;">${formatDateDisplay(po.date)}</div>
+
         </div>
       </div>
 
@@ -3188,6 +3189,9 @@ function buildPreviewHTML(po) {
         <div style="border:2px solid #000;padding:10px 16px;border-radius:4px;text-align:right;min-width:190px;">
           ${discountAmt > 0 ? `<div style="font-size:9px;color:#333;text-align:right;font-weight:600;">Subtotal: ₱${formatNum(subtotal)}</div><div style="font-size:9px;color:#c00;text-align:right;font-weight:600;">Discount${discountType==='percent'?' ('+discountValue+'%)':''}: -₱${formatNum(discountAmt)}</div>` : ''}
           ${vatOption === 'add' ? `<div style="font-size:9px;color:#333;text-align:right;font-weight:600;">${discountAmt > 0 ? 'After Discount' : 'Subtotal'}: ₱${formatNum(subtotal - discountAmt)}</div><div style="font-size:9px;color:#333;text-align:right;font-weight:600;">12% VAT: ₱${formatNum(vatAmount)}</div>` : ''}
+          <div style="font-size:9px;font-weight:600;text-align:right;color:${vatOption==='add'?'#2e7d32':vatOption==='inclusive'?'#b36000':'#666'};margin-bottom:3px;letter-spacing:0.5px;">
+            ${vatOption==='add'?'VAT EXCLUSIVE (12% VAT Added)':vatOption==='inclusive'?'VAT INCLUSIVE':'VAT EXEMPT'}
+          </div>
           <div style="font-size:9px;font-weight:700;text-transform:uppercase;color:#333;letter-spacing:1px;">TOTAL AMNT</div>
           <div style="font-family:monospace;font-size:20px;font-weight:700;color:#c8392b;">${formatNum(total)}</div>
         </div>
