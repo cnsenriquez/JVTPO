@@ -1975,10 +1975,15 @@ function fillSupplier(idx) {
     m.category.toLowerCase().includes(supplierName.split(' ')[0].toLowerCase())
   );
 
-  if (folderIdx >= 0 && window.materials[folderIdx].items.length > 0) {
-    const count = window.materials[folderIdx].items.length;
-    showToast('📦 ' + count + ' item(s) found — piliin ang idadagdag sa PO');
-    setTimeout(() => openProductPicker(folderIdx), 300);
+  if (folderIdx >= 0) {
+    const mat = window.materials[folderIdx];
+    const rootCount = (mat.items || []).length;
+    const subCount = (mat.subfolders || []).reduce((n, sf) => n + (sf.items||[]).length, 0);
+    const count = rootCount + subCount;
+    if (count > 0) {
+      showToast('📦 ' + count + ' item(s) found — piliin ang idadagdag sa PO');
+      setTimeout(() => openProductPicker(folderIdx), 300);
+    }
   }
 }
 
