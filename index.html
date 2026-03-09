@@ -1953,7 +1953,8 @@ function calcTotal() {
 function populateSupplierSelect() {
   const sel = document.getElementById('supplierSelect');
   sel.innerHTML = '<option value="">— Select a supplier —</option>';
-  window.suppliers.forEach((s, i) => {
+  const suppSorted = (window.suppliers || []).map((s, i) => ({s, i})).sort((a,b) => a.s.name.localeCompare(b.s.name));
+  suppSorted.forEach(({s, i}) => {
     sel.innerHTML += `<option value="${i}">${s.name}</option>`;
   });
 }
@@ -2083,7 +2084,8 @@ function renderSuppliers() {
     grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏢</div><p>No window.suppliers yet.</p></div>';
     return;
   }
-  grid.innerHTML = (window.suppliers || []).map((s, i) => `
+  const sortedSuppliers = (window.suppliers || []).map((s, i) => ({s, i})).sort((a,b) => a.s.name.localeCompare(b.s.name));
+  grid.innerHTML = sortedSuppliers.map(({s, i}) => `
     <div class="supplier-card">
       <div class="badge">Supplier</div>
       <div class="supplier-name">${s.name}</div>
@@ -2330,7 +2332,6 @@ let _pickerFolderIdx = null;
 let _pickerSubfolderIdx = null;
 
 function openProductPicker(folderIdx) {
-  // Build folder tabs
   const tabsEl = document.getElementById('pickerFolderTabs');
   tabsEl.innerHTML = '';
 
@@ -2344,7 +2345,7 @@ function openProductPicker(folderIdx) {
   const singleFolder = (folderIdx !== undefined && folderIdx !== null);
 
   if (singleFolder) {
-    // Only show the chosen supplier's folder — no other tabs
+    // Specific supplier — show their name as a single pill
     _pickerFolderIdx = folderIdx;
     const folder = window.materials[folderIdx];
     const btn = document.createElement('button');
@@ -2352,22 +2353,32 @@ function openProductPicker(folderIdx) {
     btn.style.cssText = 'padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--accent);background:var(--accent);color:#fff;white-space:nowrap;';
     tabsEl.appendChild(btn);
   } else {
-    // Manual open — show all folders as tabs
+    // Manual open — show a compact dropdown instead of pills
     _pickerFolderIdx = 0;
-    window.materials.forEach((folder, ci) => {
-      const btn = document.createElement('button');
-      btn.textContent = folder.category;
-      btn.dataset.ci = ci;
-      btn.onclick = function() { _pickerFolderIdx = ci; renderPickerFolder(); };
-      btn.style.cssText = 'padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);transition:all 0.15s;white-space:nowrap;';
-      tabsEl.appendChild(btn);
+    const sel = document.createElement('select');
+    sel.style.cssText = 'padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;border:1.5px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;max-width:100%;';
+    const sorted = window.materials.map((folder, ci) => ({ folder, ci }))
+      .sort((a, b) => a.folder.category.localeCompare(b.folder.category));
+    sorted.forEach(({ folder, ci }) => {
+      const opt = document.createElement('option');
+      opt.value = ci;
+      opt.textContent = folder.category;
+      sel.appendChild(opt);
     });
+    if (sorted.length > 0) _pickerFolderIdx = sorted[0].ci;
+    sel.addEventListener('change', function() {
+      _pickerFolderIdx = parseInt(this.value);
+      _pickerSubfolderIdx = null;
+      renderPickerFolder();
+    });
+    tabsEl.appendChild(sel);
   }
 
   _pickerSubfolderIdx = null;
   renderPickerFolder();
   document.getElementById('materialPickModal').classList.add('open');
 }
+
 
 function renderPickerFolder() {
   var tabsEl = document.getElementById('pickerFolderTabs');
