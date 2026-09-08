@@ -411,6 +411,7 @@
     <table class="items-table" id="itemsTable">
       <thead>
         <tr>
+          <th style="width:24px"></th>
           <th style="width:50px">No.</th>
           <th>Description</th>
           <th style="width:80px">Code</th>
@@ -418,7 +419,7 @@
           <th style="width:80px">Unit</th>
           <th style="width:120px">Unit Price</th>
           <th style="width:130px">Amount</th>
-          <th style="width:40px"></th>
+          <th style="width:70px"></th>
         </tr>
       </thead>
       <tbody id="itemsBody"></tbody>
@@ -1641,12 +1642,29 @@ function removeItem(idx) {
   renderItems();
 }
 
+function insertItemAt(idx) {
+  window._items.splice(idx + 1, 0, { desc: '', code: '', qty: 1, unit: 'pc', price: '', amount: 0 });
+  window._items.forEach((it, i) => it.no = i + 1);
+  renderItems();
+}
+
+function moveItem(fromIdx, toIdx) {
+  if (fromIdx === toIdx) return;
+  const [moved] = window._items.splice(fromIdx, 1);
+  window._items.splice(toIdx, 0, moved);
+  window._items.forEach((it, i) => it.no = i + 1);
+  renderItems();
+}
+
 function renderItems() {
   const tbody = document.getElementById('itemsBody');
   tbody.innerHTML = '';
   (window._items || []).forEach((item, idx) => {
     const tr = document.createElement('tr');
+    tr.draggable = true;
+    tr.dataset.idx = idx;
     tr.innerHTML = `
+      <td style="text-align:center;cursor:grab;color:var(--text3);font-size:15px;user-select:none;" title="Drag to reorder">⠿</td>
       <td style="text-align:center;color:var(--text3);font-size:12px;">${idx + 1}</td>
       <td>
         <div class="desc-stack">
@@ -1659,8 +1677,32 @@ function renderItems() {
       <td><input data-itemkey="unit-${idx}" value="${item.unit||''}"></td>
       <td><input type="number" data-itemkey="price-${idx}" value="${item.price||''}" placeholder="0.00"></td>
       <td class="amount-cell" id="amount-cell-${idx}">P ${formatNum(item.amount)}</td>
-      <td><button class="btn-remove" data-action="remove-item" data-idx="${idx}">x</button></td>
+      <td>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <button type="button" class="btn-remove" data-action="insert-item-below" data-idx="${idx}" title="Insert item below" style="background:#e0f2fe;color:#0369a1;">+</button>
+          <button type="button" class="btn-remove" data-action="remove-item" data-idx="${idx}">x</button>
+        </div>
+      </td>
     `;
+    // Drag and drop reordering
+    tr.addEventListener('dragstart', function(e) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(idx));
+      tr.style.opacity = '0.4';
+    });
+    tr.addEventListener('dragend', function() { tr.style.opacity = '1'; });
+    tr.addEventListener('dragover', function(e) {
+      e.preventDefault();
+      tr.style.borderTop = '2px solid var(--primary, #2563eb)';
+    });
+    tr.addEventListener('dragleave', function() { tr.style.borderTop = ''; });
+    tr.addEventListener('drop', function(e) {
+      e.preventDefault();
+      tr.style.borderTop = '';
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIdx = parseInt(tr.dataset.idx);
+      moveItem(fromIdx, toIdx);
+    });
     // Attach events after DOM insertion
     const inputs = tr.querySelectorAll('input, textarea');
     inputs.forEach(inp => {
@@ -3422,6 +3464,7 @@ function setupEventDelegation() {
       case 'set-mat-supplier': setActiveMatSupplier(ci); break;
       // Items
       case 'remove-item': removeItem(idx); break;
+      case 'insert-item-below': insertItemAt(idx); break;
       case 'delete-category': deleteCategory(ci); break;
       case 'remove-expense':
         if (window._editingExpenses) {
@@ -3441,6 +3484,8 @@ window.switchTab = switchTab;
 window.addItem = addItem;
 window.removeItem = removeItem;
 window.renderItems = renderItems;
+window.insertItemAt = insertItemAt;
+window.moveItem = moveItem;
 window.updateItem = updateItem;
 window.calcTotal = calcTotal;
 window.populateSupplierSelect = populateSupplierSelect;
