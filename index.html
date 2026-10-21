@@ -217,6 +217,53 @@
   .status-saved { background: #d1e7dd; color: #0f5132; }
   .po-num-tag { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--accent); }
 
+  /* INTERNAL NOTES & SUPPLIER-GROUPED PO SUMMARY */
+  .internal-remarks-panel { margin-top:18px; padding:16px 18px; border:1px solid #dbe5f2; border-left:4px solid #3b82f6; background:#f5f9ff; border-radius:9px; }
+  .internal-remarks-panel label { display:flex; align-items:center; gap:7px; color:#1e3a8a; font-weight:700; font-size:12px; margin-bottom:9px; }
+  .internal-remarks-panel textarea { display:block; background:#fff; width:100%; min-height:76px; line-height:1.5; }
+  .internal-remarks-hint { margin-top:7px; font-size:11px; color:#536681; line-height:1.5; }
+  .summary-tools { display:flex; flex-wrap:wrap; align-items:end; gap:12px; margin-bottom:14px; }
+  .summary-tools .form-group { min-width:180px; }
+  .summary-tools .summary-search { flex:2; min-width:230px; }
+  .summary-tools .summary-supplier { flex:1; min-width:220px; }
+  .summary-tools input, .summary-tools select { width:100%; background:#fff; }
+  .summary-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:16px; }
+  .summary-metric { padding:15px 18px; border:1px solid var(--border); border-radius:10px; background:var(--surface); }
+  .summary-metric .metric-label { font-size:11px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.6px; }
+  .summary-metric .metric-value { font-family:'DM Mono',monospace; font-weight:600; color:var(--accent2); font-size:20px; margin-top:5px; }
+  .supplier-group-row td { padding:0 !important; background:#f0f2f6 !important; border-bottom:1px solid #d9e0e9; }
+  .supplier-group-btn { display:flex; align-items:center; width:100%; gap:12px; padding:14px 18px; background:transparent; border:0; font-family:inherit; color:var(--accent2); text-align:left; cursor:pointer; }
+  .supplier-group-btn:hover { background:#e9edf4; }
+  .supplier-group-btn .sg-name { font-weight:700; font-size:13px; overflow-wrap:anywhere; }
+  .supplier-group-btn .sg-count { font-size:11px; color:#64748b; background:#fff; padding:4px 8px; border:1px solid #dce3ed; border-radius:16px; white-space:nowrap; }
+  .supplier-group-btn .sg-total { font-family:'DM Mono',monospace; font-size:12px; font-weight:600; color:#1b4666; white-space:nowrap; margin-left:auto; }
+  .summary-remarks { white-space:pre-wrap; overflow-wrap:anywhere; min-width:150px; max-width:300px; font-size:12px; line-height:1.5; color:#405066; }
+  .summary-remarks.empty { color:#a0a6b0; }
+  .summary-table .summary-actions { display:flex; flex-wrap:wrap; gap:5px; }
+  @media (max-width:700px) {
+    .summary-metrics { gap:7px; }
+    .summary-metric { padding:12px; }
+    .summary-metric .metric-value { font-size:15px; }
+    #tab-summary .section-header { align-items:flex-start; flex-direction:column; gap:12px; }
+    #tab-summary .section-header > div:last-child { flex-wrap:wrap; }
+    .summary-remarks { min-width:130px; }
+  }
+
+  /* GLOBAL PO NUMBER REFERENCE — always independent of supplier grouping */
+  .po-number-reference { display:grid; grid-template-columns:1.05fr 1fr; gap:12px; margin:0 0 16px; }
+  .po-number-ref-card { background:var(--surface); border:1px solid var(--border); border-radius:11px; padding:17px 20px; box-shadow:var(--shadow); min-width:0; }
+  .po-number-ref-card.primary { background:var(--accent2); border-color:var(--accent2); color:#fff; }
+  .po-number-ref-eyebrow { font-size:10px; font-weight:700; letter-spacing:1.1px; text-transform:uppercase; color:var(--text3); }
+  .po-number-ref-card.primary .po-number-ref-eyebrow { color:#b6becf; }
+  .po-number-ref-value { font-family:'DM Mono',monospace; font-weight:600; font-size:clamp(18px,2.2vw,25px); line-height:1.25; margin-top:9px; letter-spacing:-.35px; overflow-wrap:anywhere; }
+  .po-number-ref-card.primary .po-number-ref-value { color:#fff; }
+  .po-number-ref-card:not(.primary) .po-number-ref-value { color:var(--accent); }
+  .po-number-ref-details { font-size:11px; color:var(--text3); margin-top:8px; line-height:1.5; }
+  .po-number-ref-card.primary .po-number-ref-details { color:#d5d9e3; }
+  .po-number-inline-hint { font-size:10.5px; line-height:1.5; color:var(--text3); margin-top:4px; }
+  .po-number-inline-hint strong { font-family:'DM Mono',monospace; color:var(--accent2); }
+  @media (max-width:650px) { .po-number-reference { grid-template-columns:1fr; gap:9px; } }
+
   /* MODAL */
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
   .modal-overlay.open { display: flex; }
@@ -314,6 +361,7 @@
             <option value="">⏳ No Entry PO</option>
           </datalist>
         </div>
+        <div class="po-number-inline-hint">Latest saved: <strong id="formLatestPONumber">—</strong> · Next suggested: <strong id="formNextPONumber">—</strong></div>
       </div>
       <div class="form-group">
         <label>Date</label>
@@ -367,6 +415,11 @@
           <input type="hidden" id="preparedBy" value="Cristian Enriquez">
         </div>
       </div>
+    </div>
+    <div class="internal-remarks-panel">
+      <label for="internalRemarks">📝 Internal Remarks <span style="font-weight:400;color:#64748b;">(optional)</span></label>
+      <textarea id="internalRemarks" placeholder="e.g. For Makati site – 45RU rack, 5 trays; requested by Operations"></textarea>
+      <div class="internal-remarks-hint">For internal reference only. Saved with this PO and visible in PO Summary; never included in the PO preview, printout, or PDF.</div>
     </div>
   </div>
 
@@ -474,26 +527,55 @@
         <button id="sum-filter-nopo" class="btn btn-sm" style="background:transparent;color:var(--text2);border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;" onclick="window.setSummaryFilter('nopo')">⏳ No Entry PO</button>
         <button id="sum-filter-withpo" class="btn btn-sm" style="background:transparent;color:var(--text2);border:none;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;" onclick="window.setSummaryFilter('withpo')">✅ With PO</button>
       </div>
-      <button class="btn btn-secondary btn-sm" onclick="window.renderSummary()">🔄 Refresh</button>
+      <button class="btn btn-secondary btn-sm" onclick="window.refreshPOsFromCloud()" title="Reload latest POs from Firebase">🔄 Sync Latest</button>
       <button class="btn btn-sm" onclick="window.exportPOsToExcel()" style="background:#1d6f42;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">📊 Export Excel</button>
       <button class="btn btn-sm" onclick="window.exportSummaryToPDF()" style="background:#dc2626;color:#fff;border:none;padding:4px 12px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;">📄 Export PDF</button>
     </div>
   </div>
-  <div class="card" style="padding:0;overflow:hidden;">
-    <table class="summary-table" id="summaryTable">
+   <div class="po-number-reference" aria-label="PO numbering across all suppliers">
+     <div class="po-number-ref-card primary">
+       <div class="po-number-ref-eyebrow">Latest Saved PO Number · All Suppliers</div>
+       <div class="po-number-ref-value" id="summaryLatestPONumber">—</div>
+       <div class="po-number-ref-details" id="summaryLatestPODetails">Checking saved purchase orders…</div>
+     </div>
+     <div class="po-number-ref-card">
+       <div class="po-number-ref-eyebrow">Next Suggested PO Number</div>
+       <div class="po-number-ref-value" id="summaryNextPONumber">—</div>
+       <div class="po-number-ref-details">Based on saved numbers and the existing company numbering sequence. Verify before saving if others create POs simultaneously.</div>
+     </div>
+   </div>
+   <div class="summary-tools">
+     <div class="form-group summary-search">
+       <label for="summarySearch">Search POs or Remarks</label>
+       <input id="summarySearch" type="search" placeholder="Search PO number, supplier, or internal remarks…" oninput="window.renderSummary()">
+     </div>
+     <div class="form-group summary-supplier">
+       <label for="summarySupplierFilter">Supplier</label>
+       <select id="summarySupplierFilter" onchange="window.renderSummary()"><option value="">All Suppliers</option></select>
+     </div>
+     <button class="btn btn-secondary btn-sm" onclick="window.expandAllSuppliers()">Expand All</button>
+     <button class="btn btn-secondary btn-sm" onclick="window.collapseAllSuppliers()">Collapse All</button>
+   </div>
+   <div class="summary-metrics">
+     <div class="summary-metric"><div class="metric-label">Suppliers</div><div id="summarySupplierCount" class="metric-value">0</div></div>
+     <div class="summary-metric"><div class="metric-label">Purchase Orders</div><div id="summaryPOCount" class="metric-value">0</div></div>
+     <div class="summary-metric"><div class="metric-label">Total Amount</div><div id="summaryGrandTotal" class="metric-value">₱0.00</div></div>
+   </div>
+   <div class="card" style="padding:0;overflow-x:auto;">
+     <table class="summary-table" id="summaryTable" style="min-width:850px;">
       <thead>
         <tr>
           <th style="width:36px;"><input type="checkbox" id="selectAllPOs" title="Select All" onchange="window.toggleSelectAllPOs(this.checked)" style="cursor:pointer;width:15px;height:15px;"></th>
           <th>PO Number</th>
           <th>Date</th>
-          <th>Supplier</th>
-          <th>Total</th>
-          <th>Status</th>
-          <th>Actions</th>
+           <th>Internal Remarks</th>
+           <th>Total</th>
+           <th>Status</th>
+           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="summaryBody">
-        <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>
+        <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>
       </tbody>
     </table>
   </div>
@@ -712,6 +794,7 @@
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="supplier" checked> Supplier</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="contact"> Contact Person</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="paymentTerms" checked> Payment Terms</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="internalRemarks"> Internal Remarks (internal Excel only)</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="deliveryDate"> Delivery Date</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="vatOption"> VAT Option</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="subtotal" checked> Subtotal (Gross)</label>
@@ -1285,12 +1368,46 @@ window.deletePOFromCloud = async function(poNumber) {
   } catch(e) { console.error('deletePO error:', e); }
 };
 
+// The PO number reference uses the entire selected company's saved records,
+// regardless of the supplier/search/status filters in the PO Summary.
+function getLatestSavedNumberedPO() {
+  const companyID = getCompany().id;
+  return (window.savedPOs || [])
+    .filter(po => (!po.company || po.company === companyID) && !po.isNoPO && po.poNumber && !String(po.poNumber).startsWith('NO-PO-'))
+    .map(po => {
+      const parts = String(po.poNumber).split('-');
+      const sequence = Number.parseInt(parts[parts.length - 1], 10);
+      return { po, sequence: Number.isFinite(sequence) ? sequence : -1 };
+    })
+    .sort((a, b) => b.sequence - a.sequence ||
+      String(b.po.savedAt || b.po.date || '').localeCompare(String(a.po.savedAt || a.po.date || '')))[0]?.po || null;
+}
+function updatePONumberReference() {
+  const latest = getLatestSavedNumberedPO();
+  const lastNumber = latest?.poNumber || '—';
+  const nextNumber = generateNextPONumber();
+  const supplier = latest?.supplier?.name?.trim() || 'Supplier not specified';
+  const details = latest ? `${supplier} · ${latest.date || 'Date not specified'}` : 'No saved numbered PO yet for this company.';
+  const values = {
+    summaryLatestPONumber: lastNumber,
+    summaryNextPONumber: nextNumber,
+    summaryLatestPODetails: details,
+    formLatestPONumber: lastNumber,
+    formNextPONumber: nextNumber
+  };
+  for (const [id, val] of Object.entries(values)) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+}
+window.updatePONumberReference = updatePONumberReference;
 // ========== PO NUMBER DROPDOWN ==========
 function populatePONumberDropdown(keepValue) {
   const inp = document.getElementById('poNumber');
   const dl = document.getElementById('poNumberList');
   if (!inp) return;
   const nextPO = generateNextPONumber();
+  updatePONumberReference();
   const current = keepValue !== undefined ? keepValue : inp.value;
   // Rebuild datalist
   if (dl) {
@@ -1449,6 +1566,28 @@ async function loadAllData() {
 }
 
 window.loadAllData = loadAllData;
+
+// Explicit summary refresh reads the live company collection, not just the local table.
+window.refreshPOsFromCloud = async function() {
+  const company = getCompany();
+  const poInput = document.getElementById('poNumber');
+  const currentNumber = poInput?.value || '';
+  const hadSuggestedNumber = currentNumber === generateNextPONumber() && !window.currentEditPO;
+  try {
+    const snapshot = await getDocs(collection(db, company.poCollection || 'purchase_orders'));
+    if (getCompany().id !== company.id) return; // Company changed while request was in flight.
+    const fresh = [];
+    snapshot.forEach(doc => fresh.push(doc.data()));
+    window.savedPOs = fresh.sort((a,b) => String(a.poNumber || '').localeCompare(String(b.poNumber || '')));
+    localStorage.setItem(company.localKeyPOs, JSON.stringify(window.savedPOs));
+    populatePONumberDropdown(hadSuggestedNumber ? '' : currentNumber);
+    renderSummary();
+    showToast('✅ Latest PO numbers synced from Firebase');
+  } catch (error) {
+    console.error('PO sync error:', error);
+    showToast('⚠️ Could not sync latest numbers. Check your connection.');
+  }
+};
 
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof setupEventDelegation === 'function') setupEventDelegation();
@@ -2069,7 +2208,7 @@ window.onPOCheckChange = function(cb) {
 
 // ========== DRAFT AUTO-SAVE ==========
 const DRAFT_KEY = ('jvt_po_draft_' + window.ACTIVE_COMPANY);
-const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','vatOption','discountType','suppName','suppContact','suppTel','suppFax','suppAddress'];
+const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','vatOption','discountType','internalRemarks','suppName','suppContact','suppTel','suppFax','suppAddress'];
 
 function saveDraft() {
   if (window._draftPaused) return; // don't save during initial render
@@ -2819,6 +2958,7 @@ async function savePO() {
   }
   if (existIdx >= 0) {
     if (!confirm('A PO with this number already exists. Overwrite?')) return;
+    po.status = window.savedPOs[existIdx].status || 'saved';
     window.savedPOs[existIdx] = po;
   } else {
     window.savedPOs.push(po);
@@ -2847,6 +2987,7 @@ function getPOData() {
     date: document.getElementById('poDate').value || new Date().toISOString().split('T')[0],
     paymentTerms: document.getElementById('paymentTerms').value,
     deliveryDate: document.getElementById('deliveryDate').value,
+    internalRemarks: document.getElementById('internalRemarks').value.trim(),
     vatOption,
     vatAmount,
     subtotal,
@@ -2880,7 +3021,7 @@ function resetPO() {
   clearDraft();
   if (!confirm('Start a new PO? Unsaved changes will be lost.')) return;
   window._items = [{ no: 1, desc: '', code: '', qty: '', unit: 'pc', price: '', amount: 0 }];
-  ['suppName','suppContact','suppTel','suppFax','suppAddress'].forEach(id => document.getElementById(id).value = '');
+  ['suppName','suppContact','suppTel','suppFax','suppAddress','internalRemarks'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('supplierSelect').value = '';
   populatePONumberDropdown('');
   setDefaultDates();
@@ -2934,53 +3075,136 @@ window.updatePOStatus = async function(realIdx, newStatus) {
   showToast('✅ Status updated: ' + s.label);
 };
 
+// HTML escape only for user-entered text displayed in the HTML summary.
+function escapeSummaryText(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[c]);
+}
+function summarySupplierKey(po) {
+  return String(po.supplier?.name || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase() || '__NO_SUPPLIER__';
+}
+window._collapsedSuppliers = window._collapsedSuppliers || new Set();
+window._supplierGroupKeys = [];
+window.toggleSupplierGroup = function(idx) {
+  const key = window._supplierGroupKeys[idx];
+  if (!key) return;
+  if (window._collapsedSuppliers.has(key)) window._collapsedSuppliers.delete(key);
+  else window._collapsedSuppliers.add(key);
+  renderSummary();
+};
+window.expandAllSuppliers = function() {
+  window._collapsedSuppliers.clear();
+  renderSummary();
+};
+window.collapseAllSuppliers = function() {
+  window._supplierGroupKeys.forEach(k => window._collapsedSuppliers.add(k));
+  renderSummary();
+};
 function renderSummary() {
   const tbody = document.getElementById('summaryBody');
   if (!tbody) return;
-  if (!(window.savedPOs || []).length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>';
-    return;
-  }
-  const _activeCo = getCompany().id;
+  const all = (window.savedPOs || []).map((po, i) => ({po, realIdx:i}))
+    .filter(({po}) => !po.company || po.company === getCompany().id);
+  // Update global PO-number cards before applying any supplier, text, or status filters.
+  updatePONumberReference();
   const _filter = window._summaryFilter || 'all';
-  let _displayPOs = (window.savedPOs || []).map((po, i) => ({ po, realIdx: i }))
-    .filter(({ po }) => !po.company || po.company === _activeCo);
-  if (_filter === 'nopo') _displayPOs = _displayPOs.filter(({ po }) => po.isNoPO);
-  if (_filter === 'withpo') _displayPOs = _displayPOs.filter(({ po }) => !po.isNoPO);
-  // Latest to oldest
-  _displayPOs.sort((a, b) => {
-    // Sort by last 3 digits of PO number descending
-    const getNum = p => {
-      if (!p || p.isNoPO) return -1;
-      const m = (p.poNumber || '').match(/(\d+)$/);
-      return m ? parseInt(m[1]) : -1;
-    };
-    return getNum(b.po) - getNum(a.po);
+  const supplierSelect = document.getElementById('summarySupplierFilter');
+  const searchInput = document.getElementById('summarySearch');
+  const supplierMap = new Map();
+  all.forEach(({po}) => {
+    const key = summarySupplierKey(po);
+    if (!supplierMap.has(key)) supplierMap.set(key, String(po.supplier?.name || '').trim() || 'Unassigned Supplier');
   });
-  if (_displayPOs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>';
+  const selectedSupplier = supplierSelect ? supplierSelect.value : '';
+  if (supplierSelect) {
+    const sortedSuppliers = Array.from(supplierMap).sort((a,b) => a[1].localeCompare(b[1]));
+    const signature = sortedSuppliers.map(([key,label]) => key + '=' + label).join('\u0001');
+    if (supplierSelect.dataset.signature !== signature) {
+      supplierSelect.replaceChildren(new Option('All Suppliers', ''));
+      sortedSuppliers.forEach(([key,label]) => supplierSelect.add(new Option(label,key)));
+      supplierSelect.dataset.signature = signature;
+      supplierSelect.value = supplierMap.has(selectedSupplier) ? selectedSupplier : '';
+    }
+  }
+  const chosenSupplier = supplierSelect ? supplierSelect.value : '';
+  const query = searchInput ? searchInput.value.trim().toLocaleLowerCase() : '';
+  let records = all.filter(({po}) => {
+    if (_filter === 'nopo' && !po.isNoPO) return false;
+    if (_filter === 'withpo' && po.isNoPO) return false;
+    if (chosenSupplier && summarySupplierKey(po) !== chosenSupplier) return false;
+    if (!query) return true;
+    return [po.poNumber, po.supplier?.name, po.internalRemarks, po.date,
+      ...(po.items || []).map(i => i.desc || i.name || '')]
+      .some(v => String(v || '').toLocaleLowerCase().includes(query));
+  });
+  // Preserve latest-first ordering within each supplier, including pending POs.
+  const getNum = p => {
+    if (!p || p.isNoPO) return -1;
+    const m = (p.poNumber || '').match(/(\d+)$/);
+    return m ? parseInt(m[1], 10) : -1;
+  };
+  records.sort((a,b) => getNum(b.po) - getNum(a.po) ||
+    String(b.po.date || b.po.savedAt || '').localeCompare(String(a.po.date || a.po.savedAt || '')));
+  const groups = new Map();
+  records.forEach(record => {
+    const key = summarySupplierKey(record.po);
+    if (!groups.has(key)) groups.set(key, {name:supplierMap.get(key), records:[]});
+    groups.get(key).records.push(record);
+  });
+  const orderedGroups = Array.from(groups).sort((a,b) => a[1].name.localeCompare(b[1].name));
+  window._supplierGroupKeys = orderedGroups.map(([key]) => key);
+  const countEl = document.getElementById('summarySupplierCount');
+  const posEl = document.getElementById('summaryPOCount');
+  const totalEl = document.getElementById('summaryGrandTotal');
+  if (countEl) countEl.textContent = orderedGroups.length;
+  if (posEl) posEl.textContent = records.length;
+  if (totalEl) totalEl.textContent = '₱' + formatNum(records.reduce((sum,{po}) => sum + (Number(po.total) || 0), 0));
+  if (!records.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);">' +
+      (all.length ? 'No purchase orders match your filters.' : 'No saved purchase orders yet.') + '</td></tr>';
+    const allCheck = document.getElementById('selectAllPOs');
+    if (allCheck) { allCheck.checked = false; allCheck.indeterminate = false; }
     return;
   }
-  tbody.innerHTML = _displayPOs.map(({ po, realIdx }) => {
-    const isChk = (window._selectedPOs||new Set()).has(po.poNumber||String(realIdx));
-    return `
-    <tr>
-      <td style="text-align:center;width:36px;"><input type="checkbox" class="po-row-check" data-ponum="${po.poNumber||realIdx}" ${isChk?'checked':''} onchange="window.onPOCheckChange(this)" style="cursor:pointer;width:15px;height:15px;"></td>
-      <td><span class="po-num-tag" style="${po.isNoPO ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : ''}">${po.isNoPO ? '⏳ NO-PO ENTRY' : po.poNumber}</span></td>
-      <td>${po.date || '—'}</td>
-      <td>${po.supplier?.name || '—'}</td>
-      <td style="font-family:'DM Mono',monospace;font-weight:500;">₱${formatNum(po.total)}</td>
-      <td>${window.renderStatusDropdown(po, realIdx)}</td>
-      <td>
-        <div style="display:flex;gap:6px;">
+  tbody.innerHTML = orderedGroups.map(([key, group], gi) => {
+    const collapsed = window._collapsedSuppliers.has(key);
+    const groupTotal = group.records.reduce((sum,{po}) => sum + (Number(po.total) || 0), 0);
+    const header = `<tr class="supplier-group-row"><td colspan="7">
+      <button type="button" class="supplier-group-btn" onclick="window.toggleSupplierGroup(${gi})" aria-expanded="${!collapsed}">
+        <span style="font-size:13px;">${collapsed ? '▶' : '▼'}</span>
+        <span style="font-size:17px;">🏢</span>
+        <span class="sg-name">${escapeSummaryText(group.name)}</span>
+        <span class="sg-count">${group.records.length} PO${group.records.length === 1 ? '' : 's'}</span>
+        <span class="sg-total">₱${formatNum(groupTotal)}</span>
+      </button></td></tr>`;
+    const rows = group.records.map(({po, realIdx}) => {
+      const poLabel = po.isNoPO ? '⏳ NO-PO ENTRY' : (po.poNumber || '—');
+      const isChk = (window._selectedPOs || new Set()).has(po.poNumber || String(realIdx));
+      const remarks = String(po.internalRemarks || '').trim();
+      return `<tr ${collapsed ? 'style="display:none"' : ''}>
+        <td style="text-align:center;width:36px;"><input type="checkbox" class="po-row-check" data-ponum="${escapeSummaryText(po.poNumber || String(realIdx))}" ${isChk ? 'checked' : ''} onchange="window.onPOCheckChange(this)" style="cursor:pointer;width:15px;height:15px;"></td>
+        <td><span class="po-num-tag" style="${po.isNoPO ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : ''}">${escapeSummaryText(poLabel)}</span></td>
+        <td style="white-space:nowrap;">${escapeSummaryText(po.date || '—')}</td>
+        <td><div class="summary-remarks${remarks ? '' : ' empty'}" title="${escapeSummaryText(remarks)}">${remarks ? escapeSummaryText(remarks) : 'No remarks'}</div></td>
+        <td style="font-family:'DM Mono',monospace;font-weight:500;white-space:nowrap;">₱${formatNum(po.total)}</td>
+        <td>${window.renderStatusDropdown(po, realIdx)}</td>
+        <td><div class="summary-actions">
           <button class="btn btn-secondary btn-sm" data-action="edit-po" data-idx="${realIdx}">✏️ Edit</button>
           <button class="btn btn-sm btn-outline" data-action="preview-po" data-idx="${realIdx}">👁 View</button>
           <button class="btn btn-sm" style="color:var(--accent);border:1px solid var(--accent);background:transparent;" data-action="delete-po" data-idx="${realIdx}">🗑</button>
-        </div>
-      </td>
-    </tr>
-  `;
+        </div></td>
+      </tr>`;
+    }).join('');
+    return header + rows;
   }).join('');
+  const allChecks = Array.from(tbody.querySelectorAll('.po-row-check'));
+  const checkAll = document.getElementById('selectAllPOs');
+  if (checkAll) {
+    const checked = allChecks.filter(cb => cb.checked).length;
+    checkAll.checked = !!allChecks.length && checked === allChecks.length;
+    checkAll.indeterminate = checked > 0 && checked < allChecks.length;
+  }
 }
 function loadPOEdit(i) {
   const po = window.savedPOs[i];
@@ -2990,6 +3214,7 @@ function loadPOEdit(i) {
   document.getElementById('poDate').value = po.date || '';
   document.getElementById('paymentTerms').value = po.paymentTerms || '';
   document.getElementById('deliveryDate').value = po.deliveryDate || '';
+  document.getElementById('internalRemarks').value = po.internalRemarks || '';
   const vatEl = document.getElementById('vatOption');
   if (vatEl && po.vatOption) vatEl.value = po.vatOption;
   const dtEl = document.getElementById('discountType');
@@ -3822,6 +4047,7 @@ window.doExportExcel = function() {
     { key:'supplier', label:'Supplier' },
     { key:'contact', label:'Contact Person' },
     { key:'paymentTerms', label:'Payment Terms' },
+    { key:'internalRemarks', label:'Internal Remarks' },
     { key:'deliveryDate', label:'Delivery Date' },
     { key:'vatOption', label:'VAT Option' },
     { key:'subtotal', label:'Subtotal (Gross)' },
@@ -3850,6 +4076,7 @@ window.doExportExcel = function() {
       supplier: po.supplier?.name||'',
       contact: po.supplier?.contact||'',
       paymentTerms: po.paymentTerms||'',
+      internalRemarks: po.internalRemarks||'',
       deliveryDate: po.deliveryDate||'',
       vatOption: vatLabel,
       subtotal: gross,
