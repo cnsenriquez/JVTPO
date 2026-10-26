@@ -217,6 +217,7 @@
   .status-saved { background: #d1e7dd; color: #0f5132; }
   .po-num-tag { font-family: 'DM Mono', monospace; font-weight: 600; color: var(--accent); }
 
+  .po-detail-visibility-note {font-size:11px;line-height:1.6;color:#64748b;margin-top:12px;}
   /* INTERNAL NOTES & SUPPLIER-GROUPED PO SUMMARY */
   .internal-remarks-panel { margin-top:18px; padding:16px 18px; border:1px solid #dbe5f2; border-left:4px solid #3b82f6; background:#f5f9ff; border-radius:9px; }
   .internal-remarks-panel label { display:flex; align-items:center; gap:7px; color:#1e3a8a; font-weight:700; font-size:12px; margin-bottom:9px; }
@@ -386,6 +387,14 @@
         <input type="text" id="deliveryDate" placeholder="e.g. ASAP, Feb 28, 2026, TBD">
       </div>
       <div class="form-group">
+        <label>Quotation / RFQ Reference <span style="font-size:10px;color:var(--text3);">(optional)</span></label>
+        <input type="text" id="quotationReference" maxlength="140" placeholder="e.g. QTN-1026-014 / RFQ-0052">
+      </div>
+      <div class="form-group">
+        <label>Delivery Location / Site <span style="font-size:10px;color:var(--text3);">(optional)</span></label>
+        <input type="text" id="deliveryLocation" maxlength="240" placeholder="e.g. Site name and complete delivery address">
+      </div>
+      <div class="form-group">
         <label>VAT</label>
         <select id="vatOption" onchange="calcTotal()">
           <option value="none">VAT Exempt / Not Applicable</option>
@@ -416,6 +425,7 @@
         </div>
       </div>
     </div>
+    <p class="po-detail-visibility-note"><strong>Visible to supplier:</strong> Quotation / RFQ Reference and Delivery Location appear on the supplier PO PDF only when filled in. Internal Remarks remain private.</p>
     <div class="internal-remarks-panel">
       <label for="internalRemarks">📝 Internal Remarks <span style="font-weight:400;color:#64748b;">(optional)</span></label>
       <textarea id="internalRemarks" placeholder="e.g. For Makati site – 45RU rack, 5 trays; requested by Operations"></textarea>
@@ -736,6 +746,8 @@
       <span id="pdfPOCount" style="font-size:12px;color:#888;align-self:center;margin-left:4px;"></span>
     </div>
     <div id="pdfPOList" style="flex:1;min-height:0;overflow-y:auto;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px;background:#f8fafc;display:flex;flex-direction:column;gap:3px;max-height:360px;"></div>
+    <label style="font-size:12px;display:flex;gap:9px;align-items:center;margin-top:12px;color:#334155;cursor:pointer;"><input type="checkbox" id="pdfIncludeInternalRemarks" style="width:15px;height:15px;"> Include Internal Remarks <span style="font-size:10px;color:#64748b;">(internal report only)</span></label>
+    <div style="font-size:11px;color:#64748b;line-height:1.5;margin-top:6px;">Report will be grouped by supplier, with subtotals and a grand total. Internal Remarks never appear in the individual supplier PO.</div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-shrink:0;">
       <button onclick="document.getElementById('pdfSummaryModal').classList.remove('open')" style="padding:8px 18px;border:1.5px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:13px;">Cancel</button>
       <button onclick="window.doExportSummaryPDF()" style="padding:8px 20px;background:#dc2626;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;">🖨️ Print / PDF</button>
@@ -796,6 +808,8 @@
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="paymentTerms" checked> Payment Terms</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="internalRemarks"> Internal Remarks (internal Excel only)</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="deliveryDate"> Delivery Date</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="deliveryLocation"> Delivery Location / Site</label>
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="quotationReference"> Quotation / RFQ Reference</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="vatOption"> VAT Option</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="subtotal" checked> Subtotal (Gross)</label>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;"><input type="checkbox" value="discount"> Discount</label>
@@ -2208,7 +2222,7 @@ window.onPOCheckChange = function(cb) {
 
 // ========== DRAFT AUTO-SAVE ==========
 const DRAFT_KEY = ('jvt_po_draft_' + window.ACTIVE_COMPANY);
-const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','vatOption','discountType','internalRemarks','suppName','suppContact','suppTel','suppFax','suppAddress'];
+const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','quotationReference','deliveryLocation','vatOption','discountType','internalRemarks','suppName','suppContact','suppTel','suppFax','suppAddress'];
 
 function saveDraft() {
   if (window._draftPaused) return; // don't save during initial render
@@ -2813,7 +2827,7 @@ function renderPickerFolder() {
     row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;transition:all 0.12s;';
     var sfBadge = item._fromSub ? ('<span style="font-size:9px;background:var(--accent2);color:#fff;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle;">' + item._sfName + '</span>') : '';
     var monoStyle = "font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;";
-    var codeHtml = item.code ? ('<div style="' + monoStyle + '">' + item.code + '</div>') : '';
+    var codeHtml = item.code ? ('<div style="' + monoStyle + '">' + pdfText(item.code) + '</div>') : '';
     var priceStyle = "font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent2);white-space:nowrap;";
     row.innerHTML = '<input type="checkbox" id="pcheck-' + idx + '" style="width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;">'
       + '<div style="flex:1;min-width:0;">'
@@ -2987,6 +3001,8 @@ function getPOData() {
     date: document.getElementById('poDate').value || new Date().toISOString().split('T')[0],
     paymentTerms: document.getElementById('paymentTerms').value,
     deliveryDate: document.getElementById('deliveryDate').value,
+    quotationReference: document.getElementById('quotationReference').value.trim(),
+    deliveryLocation: document.getElementById('deliveryLocation').value.trim(),
     internalRemarks: document.getElementById('internalRemarks').value.trim(),
     vatOption,
     vatAmount,
@@ -3021,7 +3037,7 @@ function resetPO() {
   clearDraft();
   if (!confirm('Start a new PO? Unsaved changes will be lost.')) return;
   window._items = [{ no: 1, desc: '', code: '', qty: '', unit: 'pc', price: '', amount: 0 }];
-  ['suppName','suppContact','suppTel','suppFax','suppAddress','internalRemarks'].forEach(id => document.getElementById(id).value = '');
+  ['suppName','suppContact','suppTel','suppFax','suppAddress','internalRemarks','quotationReference','deliveryLocation','deliveryDate'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('supplierSelect').value = '';
   populatePONumberDropdown('');
   setDefaultDates();
@@ -3214,6 +3230,8 @@ function loadPOEdit(i) {
   document.getElementById('poDate').value = po.date || '';
   document.getElementById('paymentTerms').value = po.paymentTerms || '';
   document.getElementById('deliveryDate').value = po.deliveryDate || '';
+  document.getElementById('quotationReference').value = po.quotationReference || '';
+  document.getElementById('deliveryLocation').value = po.deliveryLocation || '';
   document.getElementById('internalRemarks').value = po.internalRemarks || '';
   const vatEl = document.getElementById('vatOption');
   if (vatEl && po.vatOption) vatEl.value = po.vatOption;
@@ -3436,37 +3454,43 @@ function getPOFilename(po) {
   return `${supplier}_${poNum}`;
 }
 
-function printPO() {
+// Supplier-facing print view: preserve the official PO layout while handling A4 pagination.
+function openPOPrintView() {
   const po = window._currentPreviewPO || {};
   const filename = getPOFilename(po);
-  const content = document.getElementById('previewContent').innerHTML;
-  const win = window.open('', '_blank', 'width=900,height=700');
-  const s = 'script';
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + filename + '</title>'
-    + '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">'
-    + '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;padding:20px;color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}@media print{body{padding:0;}@page{margin:12mm;size:A4;}}td,th{color:#000!important;}</style>'
-    + '</head><body>' + content
-    + '<' + s + '>window.onload=function(){window.print();};</' + s + '>'
-    + '</body></html>');
+  const content = buildPreviewHTML(po);
+  const win = window.open('', '_blank', 'width=980,height=760');
+  if (!win) { showToast('Please allow pop-ups to print or save the PDF.'); return; }
+  const css = `
+    *{box-sizing:border-box;}html,body{margin:0;padding:0;background:white;color:#111;}
+    body{font-family:Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    #po-print-area{width:100%;max-width:100%!important;margin:0 auto!important;padding:12mm!important;}
+    #po-print-area table{width:100%;border-collapse:collapse;}
+    #po-print-area thead{display:table-header-group;}
+    #po-print-area tfoot{display:table-footer-group;}
+    #po-print-area tr,#po-print-area .po-keep-together{break-inside:avoid;page-break-inside:avoid;}
+    #po-print-area td,#po-print-area th{overflow-wrap:anywhere;}
+    #po-print-area img{max-width:100%;}
+    @media print {
+      @page { size:A4 portrait; margin:12mm 12mm 17mm; 
+        @bottom-right {content:'Page ' counter(page) ' / ' counter(pages);font:9px Arial;color:#64748b;}
+      }
+      body{padding:0;}
+      #po-print-area{padding:0!important;}
+      #po-print-area table{table-layout:auto;}
+    }
+  `;
+  win.document.open();
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escapeSummaryText(filename) + '</title><style>' + css + '</style></head><body>' + content + '</body></html>');
   win.document.close();
+  win.onload = () => {
+    Promise.all(Array.from(win.document.images).map(img => img.complete ? Promise.resolve() : new Promise(resolve => {img.onload = img.onerror = resolve;})))
+      .then(() => win.document.fonts ? win.document.fonts.ready : Promise.resolve())
+      .then(() => win.print());
+  };
 }
-
-
-function exportPDF() {
-  const po = window._currentPreviewPO || {};
-  const filename = getPOFilename(po);
-  const content = document.getElementById('previewContent').innerHTML;
-  const win = window.open('', '_blank', 'width=900,height=700');
-  const s = 'script';
-  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + filename + '</title>'
-    + '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">'
-    + '<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:Arial,sans-serif;background:#fff;padding:0;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}@page{margin:12mm;size:A4;}@media print{body{padding:0;}}td,th{color:#000!important;}</style>'
-    + '</head><body>' + content
-    + '<' + s + '>window.onload=function(){document.title="' + filename + '";window.print();};</' + s + '>'
-    + '</body></html>');
-  win.document.close();
-}
-
+function printPO() { openPOPrintView(); }
+function exportPDF() { openPOPrintView(); }
 
 function buildPreviewHTML(po) {
   const subtotal = po.subtotal || (po.items || []).reduce((s, i) => s + (i.amount || 0), 0);
@@ -3477,18 +3501,20 @@ function buildPreviewHTML(po) {
   const discountValue = parseFloat(po.discountValue) || 0;
   const discountAmt = discountType === 'percent' ? subtotal * (discountValue / 100) : (discountType === 'amount' ? discountValue : 0);
   const preparedBy = po.preparedBy || 'Cristian Enriquez';
+  const pdfText = value => escapeSummaryText(value);
+  const pdfLines = value => pdfText(value).replace(/\r?\n/g, '<br>');
   const preparedBySig = PREPARED_BY_SIGS[preparedBy] || null;
 
   const itemsHTML = (po.items || []).filter(i => i.desc).map((item, idx) => `
     <tr>
       <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${idx + 1}</td>
       <td style="border:1.5px solid #555;padding:7px 10px;color:#000;">
-        <div style="font-size:11.5px;font-weight:700;color:#000;line-height:1.4;">${item.desc}</div>
-        ${item.itemDesc ? '<div style="font-size:10.5px;color:#111;line-height:1.5;margin-top:2px;">' + item.itemDesc.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>') + '</div>' : ''}
-        ${item.code ? '<div style="font-size:9.5px;font-family:monospace;color:#333;font-weight:700;letter-spacing:0.5px;margin-top:2px;">' + item.code + '</div>' : ''}
+        <div style="font-size:11.5px;font-weight:700;color:#000;line-height:1.4;">${pdfText(item.desc)}</div>
+        ${item.itemDesc ? '<div style="font-size:10.5px;color:#111;line-height:1.5;margin-top:2px;">' + pdfText(item.itemDesc).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>') + '</div>' : ''}
+        ${item.code ? '<div style="font-size:9.5px;font-family:monospace;color:#333;font-weight:700;letter-spacing:0.5px;margin-top:2px;">' + pdfText(item.code) + '</div>' : ''}
       </td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${item.qty}</td>
-      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${item.unit}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${pdfText(item.qty)}</td>
+      <td style="border:1.5px solid #555;padding:6px 8px;text-align:center;color:#000;vertical-align:middle;">${pdfText(item.unit)}</td>
       <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;color:#000;vertical-align:middle;">${formatNum(item.price)}</td>
       <td style="border:1.5px solid #555;padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#000;vertical-align:middle;">${formatNum(item.amount)}</td>
     </tr>
@@ -3520,7 +3546,7 @@ function buildPreviewHTML(po) {
         <div style="text-align:right;">
           <div style="font-weight:800;font-size:20px;color:#c8392b;letter-spacing:2px;font-style:italic;">PURCHASE ORDER</div>
           <div style="font-size:10px;color:#333;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:1px;">PO NO.</div>
-          <div style="font-family:monospace;font-size:17px;font-weight:700;color:${po.isNoPO ? '#aaa' : '#000'};">${po.isNoPO ? '— No PO # —' : po.poNumber}</div>
+          <div style="font-family:monospace;font-size:17px;font-weight:700;color:${po.isNoPO ? '#aaa' : '#000'};">${po.isNoPO ? '— No PO # —' : pdfText(po.poNumber)}</div>
           <div style="font-size:11px;color:#333;margin-top:2px;font-weight:500;">${formatDateDisplay(po.date)}</div>
         </div>
       </div>
@@ -3528,21 +3554,27 @@ function buildPreviewHTML(po) {
       <!-- SUPPLIER INFO TABLE -->
       <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
         <tr>
-          <td style="border:1.5px solid #555;padding:6px 10px;width:55%;font-size:11px;color:#000;"><strong>SUPPLIER:</strong> <strong>${po.supplier?.name || ''}</strong></td>
-          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>PAYMENT TERMS:</strong><br><span style="font-weight:600;">${po.paymentTerms}</span></td>
+          <td style="border:1.5px solid #555;padding:6px 10px;width:55%;font-size:11px;color:#000;"><strong>SUPPLIER:</strong> <strong>${pdfText(po.supplier?.name || '')}</strong></td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>PAYMENT TERMS:</strong><br><span style="font-weight:600;">${pdfText(po.paymentTerms)}</span></td>
         </tr>
         <tr>
-          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>CONTACT PERSON:</strong> ${po.supplier?.contact || ''}</td>
-          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>DELIVERY DATE:</strong><br><span style="font-weight:600;">${po.deliveryDate || ''}</span></td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>CONTACT PERSON:</strong> ${pdfText(po.supplier?.contact || '')}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>DELIVERY DATE:</strong><br><span style="font-weight:600;">${pdfText(po.deliveryDate || '')}</span></td>
         </tr>
         <tr>
-          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>Tel No.</strong> ${po.supplier?.tel || ''}</td>
-          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>Fax</strong> &nbsp; ${po.supplier?.fax || ''}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>Tel No.</strong> ${pdfText(po.supplier?.tel || '')}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;"><strong>Fax</strong> &nbsp; ${pdfText(po.supplier?.fax || '')}</td>
         </tr>
         <tr>
-          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;" colspan="2"><strong>ADDRESS:</strong> ${po.supplier?.address || ''}</td>
+          <td style="border:1.5px solid #555;padding:6px 10px;font-size:11px;color:#000;" colspan="2"><strong>ADDRESS:</strong> ${pdfLines(po.supplier?.address || '')}</td>
         </tr>
       </table>
+
+      ${(po.quotationReference || po.deliveryLocation) ? `
+      <table class="po-keep-together" style="width:100%;border-collapse:collapse;margin-bottom:10px;font-size:10.5px;">
+        ${po.quotationReference ? `<tr><td style="border:1.5px solid #555;padding:6px 10px;color:#000;"><strong>QUOTATION / RFQ REFERENCE:</strong> ${pdfText(po.quotationReference)}</td></tr>` : ''}
+        ${po.deliveryLocation ? `<tr><td style="border:1.5px solid #555;padding:6px 10px;color:#000;"><strong>DELIVERY LOCATION / SITE:</strong> ${pdfLines(po.deliveryLocation)}</td></tr>` : ''}
+      </table>` : ''}
 
       <!-- ITEMS TABLE -->
       <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px;">
@@ -3568,7 +3600,7 @@ function buildPreviewHTML(po) {
       </table>
 
       <!-- TOTALS + WORDS -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;gap:16px;">
+      <div class="po-keep-together" style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;gap:16px;">
         <div style="flex:1;">
           <div style="font-size:11px;margin-bottom:4px;color:#000;"><strong>AMOUNT IN WORDS:</strong> ${numToWords(total)}</div>
           <div style="font-size:10px;color:#333;margin-top:6px;font-weight:500;">NOTE: KINDLY CONFIRM RECEIPT AND FAX BACK AT TELEFAX NO. 8218323.</div>
@@ -3584,12 +3616,12 @@ function buildPreviewHTML(po) {
       </div>
 
       <!-- SIGNATURES ROW -->
-      <table style="width:100%;border-collapse:collapse;">
+      <table class="po-keep-together" style="width:100%;border-collapse:collapse;">
         <tr>
           <td style="border:1.5px solid #555;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;color:#000;">
             <strong>PREPARED BY:</strong><br>
             ${preparedBySig ? `<div style="text-align:center;margin:2px 0;"><img src="${preparedBySig}" style="height:70px;max-width:180px;object-fit:contain;" alt="Signature"></div>` : '<br><br>'}
-            <div style="border-top:1.5px solid #333;padding-top:4px;text-align:center;font-size:10px;font-weight:600;color:#000;">${preparedBy}</div>
+            <div style="border-top:1.5px solid #333;padding-top:4px;text-align:center;font-size:10px;font-weight:600;color:#000;">${pdfText(preparedBy)}</div>
           </td>
           <td style="border:1.5px solid #555;padding:8px 12px;width:25%;font-size:11px;vertical-align:bottom;color:#000;">
             <strong>APPROVED BY:</strong><br>
@@ -3913,6 +3945,8 @@ window.exportSummaryToPDF = function() {
     container.appendChild(row);
   });
 
+  const remarksToggle = document.getElementById('pdfIncludeInternalRemarks');
+  if (remarksToggle) remarksToggle.checked = false;
   window.updatePdfPOCount();
   document.getElementById('pdfSummaryModal').classList.add('open');
 };
@@ -3929,51 +3963,85 @@ window.pdfSelectAllPOs = function(val) {
   window.updatePdfPOCount();
 };
 
+// Internal management PDF (distinct from the supplier-facing PO).
+window.buildGroupedSummaryHTML = function(pos, includeRemarks = false, companyOverride) {
+  const company = companyOverride || getCompany();
+  const esc = escapeSummaryText;
+  const money = value => '₱' + formatNum(Number(value) || 0);
+  const rows = (pos || []).slice();
+  const grouped = new Map();
+  rows.forEach(po => {
+    const key = summarySupplierKey(po);
+    if (!grouped.has(key)) grouped.set(key, { name: String(po.supplier?.name || '').trim() || 'Unassigned Supplier', pos: [] });
+    grouped.get(key).pos.push(po);
+  });
+  const groups = Array.from(grouped.values()).sort((a,b) => a.name.localeCompare(b.name));
+  const numberValue = po => {
+    if (po.isNoPO) return -1;
+    const match = String(po.poNumber || '').match(/(\d+)$/);
+    return match ? Number(match[1]) : -1;
+  };
+  groups.forEach(group => group.pos.sort((a,b) => numberValue(b)-numberValue(a) || String(b.date||'').localeCompare(String(a.date||''))));
+  const totalAmount = rows.reduce((sum,po) => sum+(Number(po.total)||0),0);
+  const dates = rows.map(po => po.date).filter(Boolean).sort();
+  const dateRange = dates.length ? `${esc(dates[0])} to ${esc(dates[dates.length - 1])}` : 'Not specified';
+  const generated = new Date().toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'});
+  const blocks = groups.map(group => {
+    const subtotal = group.pos.reduce((sum,po)=>sum+(Number(po.total)||0),0);
+    const rowHTML = group.pos.map(po=>{
+      const st = PO_STATUSES.find(s => s.key === (po.status || 'saved')) || PO_STATUSES[0];
+      const label = po.isNoPO ? 'NO-PO ENTRY' : (po.poNumber || '—');
+      const remarks = String(po.internalRemarks || '').trim();
+      return `<tr class="data-row"><td class="mono">${esc(label)}</td><td>${esc(po.date || '—')}</td><td>${esc(st.label)}</td><td class="amount">${money(po.total)}</td></tr>` +
+        (includeRemarks && remarks ? `<tr class="remarks-row"><td colspan="4"><strong>Internal:</strong> ${esc(remarks).replace(/\r?\n/g,'<br>')}</td></tr>` : '');
+    }).join('');
+    return `<section class="supplier-block"><div class="supplier-heading"><strong>${esc(group.name)}</strong><span>${group.pos.length} PO${group.pos.length === 1 ? '' : 's'}</span></div>
+      <table class="supplier-table"><thead><tr><th>PO Number</th><th>Date</th><th>Status</th><th class="amount">Amount (PHP)</th></tr></thead><tbody>${rowHTML}</tbody>
+      <tfoot><tr><td colspan="3">SUPPLIER SUBTOTAL</td><td class="amount">${money(subtotal)}</td></tr></tfoot></table></section>`;
+  }).join('');
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${esc((company.label || company.name || 'Company') + ' - PO Summary')}</title>
+  <style>
+    @page {size:A4 portrait;margin:14mm 12mm 17mm; @bottom-right{content:'Page ' counter(page) ' / ' counter(pages);font:9px Arial;color:#64748b;}}
+    *{box-sizing:border-box;}body{font-family:Arial,sans-serif;font-size:10px;color:#1e293b;margin:0;background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .report{max-width:920px;margin:auto;padding:22px;}h1{font-size:19px;letter-spacing:.4px;margin:0 0 3px;color:#0f172a;}
+    .eyebrow{font-weight:700;color:#b91c1c;font-size:10px;letter-spacing:1.4px;margin-bottom:5px;}.subtitle{color:#64748b;line-height:1.6;margin-bottom:15px;}
+    .metrics{display:table;width:100%;border-spacing:8px 0;margin:0 -8px 20px;}.metric{display:table-cell;width:33.3%;background:#f1f5f9;border:1px solid #dbe3eb;padding:10px;vertical-align:top;border-radius:5px;}
+    .metric-label{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#475569;font-weight:700;}.metric-value{font-size:16px;font-weight:700;color:#0f172a;margin-top:3px;}
+    .supplier-block{margin:0 0 15px;page-break-inside:auto;}.supplier-heading{display:flex;justify-content:space-between;align-items:center;background:#1e293b;color:white;padding:9px 11px;break-after:avoid;page-break-after:avoid;font-size:11px;}
+    .supplier-heading strong{overflow-wrap:anywhere;}.supplier-heading span{white-space:nowrap;font-size:9px;margin-left:8px;}
+    .supplier-table{width:100%;border-collapse:collapse;table-layout:fixed;}.supplier-table thead{display:table-header-group;}.supplier-table tr{break-inside:avoid;page-break-inside:avoid;}
+    .supplier-table th{text-align:left;background:#e2e8f0;border-bottom:1px solid #94a3b8;padding:7px 9px;font-size:9px;}.supplier-table td{padding:7px 9px;border-bottom:1px solid #e2e8f0;font-size:10px;vertical-align:top;overflow-wrap:anywhere;}
+    .supplier-table th:nth-child(1){width:29%;}.supplier-table th:nth-child(2){width:20%;}.supplier-table th:nth-child(3){width:29%;}.supplier-table th:nth-child(4){width:22%;}
+    .supplier-table .amount{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}.supplier-table .mono{font-family:monospace;font-weight:700;}
+    .supplier-table tfoot td{font-weight:700;background:#f8fafc;border-top:1.5px solid #64748b;}
+    .supplier-table .remarks-row td{font-size:9px;color:#475569;white-space:normal;padding:3px 9px 8px 9px;background:#f8fafc;}
+    .grand-total{margin-top:18px;border-top:2px solid #0f172a;display:flex;justify-content:space-between;padding:12px 3px;font-size:15px;font-weight:800;color:#0f172a;}
+    .footer-note{margin-top:14px;color:#64748b;font-size:9px;}
+    @media print {.report{padding:0;max-width:none;}.supplier-block{margin-bottom:14px;}}
+  </style></head><body><main class="report">
+  <div class="eyebrow">INTERNAL PURCHASING REPORT</div><h1>${esc(company.label || company.name || 'Purchase Order Summary')}</h1>
+  <div class="subtitle">Purchase Order Summary · Generated ${esc(generated)} · PO dates: ${dateRange}${includeRemarks ? ' · Includes internal remarks' : ''}</div>
+  <div class="metrics"><div class="metric"><div class="metric-label">Suppliers</div><div class="metric-value">${groups.length}</div></div>
+  <div class="metric"><div class="metric-label">Purchase Orders</div><div class="metric-value">${rows.length}</div></div>
+  <div class="metric"><div class="metric-label">Total PO Value</div><div class="metric-value">${money(totalAmount)}</div></div></div>
+  ${blocks}<div class="grand-total"><span>GRAND TOTAL</span><span>${money(totalAmount)}</span></div>
+  <div class="footer-note">Internal company report. All amounts are in Philippine pesos. PO statuses reflect the saved status at the time of export.</div>
+  </main></body></html>`;
+};
+
 window.doExportSummaryPDF = function() {
   const company = getCompany();
   const allPos = (window.savedPOs || []).filter(p => !p.company || p.company === company.id);
   const checkedIdxs = new Set();
-  document.querySelectorAll('.pdf-po-chk:checked').forEach(c => checkedIdxs.add(parseInt(c.dataset.idx)));
-  const pos = checkedIdxs.size > 0 ? allPos.filter((_, i) => checkedIdxs.has(i)) : allPos;
-  if (!pos.length) { showToast('⚠️ Please select at least one PO.'); return; }
-
-  const rows = pos.map(po => {
-    const label = po.isNoPO ? 'NO-PO ENTRY' : (po.poNumber || '—');
-    const sup = po.supplier?.name || '—';
-    const tot = (po.total || 0).toLocaleString('en-PH', {minimumFractionDigits:2});
-    const st = PO_STATUSES.find(s => s.key === (po.status || 'saved')) || PO_STATUSES[0];
-    return `<tr>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-family:monospace;">${label}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${sup}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-family:monospace;">₱${tot}</td>
-      <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;"><span style="background:${st.bg};color:${st.color};padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;">${st.label}</span></td>
-    </tr>`;
-  }).join('');
-
-  const grandTotal = pos.reduce((sum, p) => sum + (p.total || 0), 0).toLocaleString('en-PH', {minimumFractionDigits:2});
-
-  const html = `<!DOCTYPE html><html><head><title>PO Summary</title><style>
-    body{font-family:Arial,sans-serif;padding:30px;color:#1a1a2e;}
-    h1{font-size:18px;margin-bottom:2px;}
-    .sub{color:#666;font-size:12px;margin-bottom:18px;}
-    table{width:100%;border-collapse:collapse;}
-    th{text-align:left;padding:8px 10px;background:#f3f4f6;border-bottom:2px solid #d1d5db;font-size:12px;}
-    td{font-size:12px;}
-    tfoot td{font-weight:700;border-top:2px solid #1a1a2e;}
-  </style></head><body>
-    <h1>${company.name || 'PO Summary'}</h1>
-    <div class="sub">Generated ${new Date().toLocaleDateString('en-PH', {year:'numeric',month:'long',day:'numeric'})} — ${pos.length} PO(s)</div>
-    <table>
-      <thead><tr><th>PO Number</th><th>Supplier</th><th style="text-align:right;">Total</th><th>Status</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="2" style="padding:10px;">Grand Total</td><td style="padding:10px;text-align:right;font-family:monospace;">₱${grandTotal}</td><td></td></tr></tfoot>
-    </table>
-  </body></html>`;
-
-  const w = window.open('', '_blank');
-  w.document.write(html);
-  w.document.close();
-  setTimeout(() => w.print(), 300);
+  document.querySelectorAll('.pdf-po-chk:checked').forEach(c => checkedIdxs.add(Number(c.dataset.idx)));
+  if (!checkedIdxs.size) { showToast('⚠️ Please select at least one PO.'); return; }
+  const pos = allPos.filter((_, i) => checkedIdxs.has(i));
+  const includeRemarks = !!document.getElementById('pdfIncludeInternalRemarks')?.checked;
+  const html = window.buildGroupedSummaryHTML(pos, includeRemarks, company);
+  const w = window.open('', '_blank', 'width=980,height=750');
+  if (!w) { showToast('Please allow pop-ups to print the summary.'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  w.onload = () => w.print();
   document.getElementById('pdfSummaryModal').classList.remove('open');
 };
 
@@ -4049,6 +4117,8 @@ window.doExportExcel = function() {
     { key:'paymentTerms', label:'Payment Terms' },
     { key:'internalRemarks', label:'Internal Remarks' },
     { key:'deliveryDate', label:'Delivery Date' },
+    { key:'deliveryLocation', label:'Delivery Location / Site' },
+    { key:'quotationReference', label:'Quotation / RFQ Reference' },
     { key:'vatOption', label:'VAT Option' },
     { key:'subtotal', label:'Subtotal (Gross)' },
     { key:'discount', label:'Discount' },
@@ -4078,6 +4148,8 @@ window.doExportExcel = function() {
       paymentTerms: po.paymentTerms||'',
       internalRemarks: po.internalRemarks||'',
       deliveryDate: po.deliveryDate||'',
+      deliveryLocation: po.deliveryLocation||'',
+      quotationReference: po.quotationReference||'',
       vatOption: vatLabel,
       subtotal: gross,
       discount: discAmt,
