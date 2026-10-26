@@ -207,6 +207,10 @@
   .mat-price { font-family: 'DM Mono', monospace; font-size: 13.5px; font-weight: 500; text-align: right; }
   .mat-unit { font-size: 12px; color: var(--text2); }
 
+  .supplier-draft-summary { margin-top:13px;padding:10px 12px;background:#f8fbff;border:1px solid #dbeafe;border-radius:9px; }
+  .supplier-linked-material { display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:11px;border-top:1px solid #e4eaf5;padding:7px 0; }
+  .supplier-linked-material:first-of-type {margin-top:7px;}
+  .supplier-linked-material small {color:#64748b;font-size:10px;}
   /* PO SUMMARY */
   .summary-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   .summary-table th { background: var(--surface2); padding: 10px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text2); border-bottom: 1px solid var(--border); }
@@ -294,6 +298,43 @@
   .desc-stack textarea { font-size: 12px; color: var(--text2); padding: 6px 10px; line-height: 1.4; }
   .desc-stack input:nth-child(2) { font-size: 11px; color: var(--text2); }
   .desc-stack input:nth-child(3) { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); }
+/* PROJECT -> DRAFT -> SUPPLIER PO workflow */
+.project-flow-help {font-size:12px;color:#64748b;margin:-4px 0 18px;line-height:1.6;}
+.project-meta-line {font-size:12px;color:var(--text2);margin-top:5px;line-height:1.6;}
+.project-pill {display:inline-flex;align-items:center;gap:4px;border-radius:99px;padding:3px 9px;font-size:10px;font-weight:700;background:#edf4ff;color:#1d4ed8;}
+.project-pill.orange {background:#fff7ed;color:#9a3412;}
+.project-mini-grid {display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;}
+.project-mini-stat {flex:1;min-width:125px;border:1px solid var(--border);border-radius:9px;padding:11px;background:#f8fafc;}
+.project-mini-stat small {display:block;color:#64748b;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+.project-mini-stat strong {font-size:17px;font-family:'DM Mono',monospace;color:#1a1a2e;}
+.po-project-selector {border:1px solid #d9e2ef;border-radius:10px;padding:18px;background:linear-gradient(135deg,#f8fbff,#fff);margin-bottom:18px;}
+.po-project-list {display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:10px;}
+.po-project-choice {display:flex;gap:10px;align-items:flex-start;border:1px solid #dce4ef;border-radius:8px;padding:10px;background:white;cursor:pointer;font-size:12px;}
+.po-project-choice:has(input:checked) {border-color:#2563eb;background:#eff6ff;}
+.po-project-choice input {width:17px;height:17px;flex-shrink:0;accent-color:#2563eb;}
+.project-draft-table {width:100%;border-collapse:collapse;min-width:760px;}
+.project-draft-table th {text-align:left;background:#f1f5f9;font-size:10px;color:#475569;text-transform:uppercase;padding:9px 6px;}
+.project-draft-table td {padding:5px 4px;border-bottom:1px solid #edf2f7;}
+.project-draft-table input {width:100%;padding:7px 8px;font-size:12px;background:#fff;}
+.project-draft-table input[type=number] {min-width:65px;}
+.project-draft-item {display:flex;align-items:flex-start;gap:10px;padding:11px;border:1px solid #e2e8f0;border-radius:9px;background:#fff;margin-bottom:7px;}
+.project-draft-item input {width:17px;height:17px;margin-top:3px;accent-color:#2563eb;}
+.flow-note {color:#64748b;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:10px 12px;font-size:11px;line-height:1.6;}
+/* Projects sorting - handles, drop previews and keyboard/touch controls */
+.project-sort-hint {font-size:12px;color:#64748b;margin:-7px 0 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;line-height:1.5;}
+.project-sort-card {transition:border-color .16s, box-shadow .16s, background-color .16s;}
+.project-sort-card.project-drop-before {border-top:4px solid #2563eb!important;}
+.project-sort-card.project-drop-after {border-bottom:4px solid #2563eb!important;}
+.project-sort-card.project-current-drag {opacity:.45;}
+.project-sort-controls {display:flex;align-items:center;gap:3px;flex-shrink:0;border:1px solid #e2e8f0;background:#f8fafc;padding:3px;border-radius:9px;}
+.project-drag-handle {border:none;background:transparent;color:#334155;padding:5px 8px;font:600 12px 'DM Sans',Arial,sans-serif;cursor:grab;user-select:none;touch-action:none;white-space:nowrap;border-radius:6px;}
+.project-drag-handle:hover,.project-drag-handle:focus-visible {background:#e2e8f0;outline:2px solid transparent;}
+.project-drag-handle:active {cursor:grabbing;}
+.project-move-btn {font-family:inherit;font-size:14px;border:none;background:transparent;color:#475569;border-radius:5px;padding:3px 8px;cursor:pointer;line-height:1.3;}
+.project-move-btn:hover:not(:disabled),.project-move-btn:focus-visible {background:#e2e8f0;color:#0f172a;}
+.project-move-btn:disabled {opacity:.27;cursor:default;}
+@media(max-width:700px){.project-sort-controls{width:100%;justify-content:flex-start}.project-drag-handle{padding:6px 11px;}}
+@media(max-width:760px){.po-project-list{grid-template-columns:1fr}.project-mini-stat{min-width:100px}.project-flow-buttons{flex-wrap:wrap}.project-flow-buttons .btn{flex:1}.po-project-selector{padding:12px}.project-flow-modal{padding:16px !important;}}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -433,6 +474,22 @@
     </div>
   </div>
 
+  <!-- Internal project links: never included in Supplier PDF -->
+  <div class="po-project-selector">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div><div style="font-weight:700;font-size:14px;color:#172554;">🗂️ Project Assignment <span class="project-pill">Internal only</span></div>
+      <div style="color:#64748b;font-size:11px;margin-top:4px;">One supplier PO can be linked to multiple projects / client PO references.</div></div>
+      <button type="button" class="btn btn-outline btn-sm" onclick="window.openProjectDraftPicker()">📦 Import Draft Materials</button>
+    </div>
+    <div id="poProjectChecklist" class="po-project-list"></div>
+    <div id="poMultiProjectNotice" class="flow-note" style="display:none;margin-top:10px;"></div>
+    <div class="form-group" style="margin-top:12px;">
+      <label for="manualProjectName">Temporary / Manual Project Name (optional)</label>
+      <input id="manualProjectName" maxlength="180" placeholder="If no project record yet, type the project/site name here">
+    </div>
+    <div style="font-size:11px;color:#64748b;margin-top:8px;">Project links and temporary name stay in your internal records only; they will not print on the supplier PO.</div>
+  </div>
+
   <!-- Supplier -->
   <div class="card">
     <div class="card-title">Supplier Information</div>
@@ -442,6 +499,7 @@
         <select id="supplierSelect" onchange="fillSupplier(this.value)">
           <option value="">— Select a supplier —</option>
         </select>
+        <div id="supplierDraftHint" style="font-size:11px;color:#1d4ed8;line-height:1.5;margin-top:5px;" aria-live="polite"></div>
       </div>
     </div>
     <div class="form-grid">
@@ -598,6 +656,8 @@
     <button class="btn btn-primary btn-sm" onclick="window.openAddProjectModal()">+ New Project</button>
   </div>
 
+  <div class="project-flow-help">Create a project even without a client PO number. Assign a preferred supplier per draft material, view pending requests inside each Supplier card, and combine materials from multiple projects into one Supplier PO.</div>
+  <div class="project-sort-hint">↕ Drag project cards using the handle to arrange them. Newly created projects appear first; your custom order is saved. <span style="color:#94a3b8;">Use ↑ ↓ buttons on touch devices.</span></div>
   <div id="projectsList" style="display:flex;flex-direction:column;gap:16px;"></div>
   <div id="projectsEmpty" style="text-align:center;padding:60px 20px;color:var(--text3);display:none;">
     <div style="font-size:40px;margin-bottom:12px;">🗂️</div>
@@ -1226,6 +1286,10 @@ function switchCompany(id) {
   window.materials = [];
   window.savedPOs = [];
   window.savedProjects = [];
+  window.projects = [];
+  window.currentEditPO = null;
+  const manu=document.getElementById('manualProjectName');if(manu)manu.value='';
+  renderPOProjectChecklist([]);
   updateCompanyUI();
   if (typeof window.loadAllData === 'function') window.loadAllData();
 }
@@ -1276,7 +1340,7 @@ function updateCompanyUI() {
 
 <!-- ============ ADD/EDIT PROJECT MODAL ============ -->
 <div class="modal-overlay" id="projectModal">
-  <div style="background:#fff;border-radius:12px;padding:28px;max-width:600px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
+  <div class="project-flow-modal" style="background:#fff;border-radius:12px;padding:28px;max-width:970px;width:96%;max-height:93vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
       <div style="font-size:18px;font-weight:700;" id="projectModalTitle">New Project</div>
       <button onclick="window.closeProjectModal()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text3);">✕</button>
@@ -1285,9 +1349,33 @@ function updateCompanyUI() {
       <label>Project Name</label>
       <input type="text" id="projName" placeholder="e.g. RCBC Cage Project">
     </div>
-    <div class="form-group" style="margin-bottom:14px;">
-      <label>Description / Notes</label>
-      <textarea id="projNotes" rows="2" placeholder="Optional details..." style="width:100%;padding:8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;resize:vertical;"></textarea>
+    <div class="form-grid" style="margin-bottom:14px;">
+      <div class="form-group">
+        <label for="projClientPO">Client PO Number (optional)</label>
+        <input id="projClientPO" maxlength="240" placeholder="e.g. CLIENT-PO-2026-012 / no client PO yet">
+      </div>
+      <div class="form-group">
+        <label for="projLocation">Project Location / Site</label>
+        <input id="projLocation" maxlength="280" placeholder="e.g. Makati – ABC Site, Rack Room 2">
+      </div>
+      <div class="form-group full">
+        <label for="projDescription">Project Description</label>
+        <textarea id="projDescription" rows="2" placeholder="Scope of work, what needs to be installed or supplied…" style="width:100%;"></textarea>
+      </div>
+      <div class="form-group full">
+        <label for="projNotes">Internal Notes (optional)</label>
+        <textarea id="projNotes" rows="2" placeholder="Other details for the admin team…" style="width:100%;"></textarea>
+      </div>
+    </div>
+    <div style="margin-bottom:18px;border:1px solid #dbeafe;border-radius:10px;padding:14px;background:#f8fbff;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:5px;">
+        <div style="font-size:13px;font-weight:700;color:#1e3a8a;">📦 Draft Materials / Purchase Request</div>
+        <button type="button" class="btn btn-outline btn-sm" onclick="window.addProjectDraftRow()">+ Add Material</button>
+      </div>
+      <div style="color:#64748b;font-size:11px;margin-bottom:10px;">Choose or type a preferred supplier for each item (optional). Assigned materials also appear under that supplier in the Suppliers tab. Nothing becomes ordered until a Supplier PO is saved.</div>
+      <div style="overflow-x:auto;"><table class="project-draft-table"><thead><tr><th style="min-width:145px;">Material / Item</th><th style="min-width:145px;">Preferred Supplier</th><th style="min-width:160px;">Specs</th><th style="min-width:85px;">Code</th><th style="min-width:65px;">Qty</th><th style="min-width:65px;">Unit</th><th style="min-width:100px;">Est. Price</th><th style="width:38px"></th></tr></thead><tbody id="projectDraftRows"></tbody></table></div>
+      <datalist id="projectSupplierNames"></datalist>
+      <p style="color:#64748b;font-size:11px;margin-top:9px;">Preferred Supplier: choose from your saved suppliers, or enter a temporary name. Unassigned materials can be routed to any supplier later. Exact supplier names are used to match requests.</p>
     </div>
     <div style="margin-bottom:14px;">
       <label style="font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);letter-spacing:0.5px;margin-bottom:8px;display:block;">Link POs to this Project</label>
@@ -1314,6 +1402,28 @@ function updateCompanyUI() {
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;">
       <button class="btn btn-secondary" onclick="window.closeProjectModal()">Cancel</button>
       <button class="btn btn-primary" onclick="window.saveProject()">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ IMPORT PROJECT MATERIAL DRAFTS MODAL ============ -->
+<div class="modal-overlay" id="draftImportModal">
+  <div class="project-flow-modal" style="background:#fff;border-radius:14px;padding:24px;max-width:800px;width:96%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.2);">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+      <div><div style="font-size:17px;font-weight:700;">📦 Import Project Materials</div><div style="font-size:12px;color:#64748b;margin-top:4px;">Select remaining quantities from one or several projects. Supplier matching prevents mixing orders for different suppliers.</div></div>
+      <button class="btn btn-secondary btn-sm" onclick="window.closeProjectDraftPicker()">✕ Close</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:14px;padding:10px 12px;border:1px solid #dbeafe;border-radius:9px;background:#eff6ff;">
+      <label for="draftSupplierFilter" style="font-weight:700;color:#1e3a8a;font-size:12px;">Show supplier requests</label>
+      <select id="draftSupplierFilter" style="flex:1;min-width:170px;max-width:360px;" onchange="window.renderProjectPicker()"></select>
+      <span id="draftSupplierContext" style="font-size:11px;color:#475569;"></span>
+    </div>
+    <div style="margin-top:12px;overflow:auto;flex:1;min-height:0;" id="draftImportRows"></div>
+    <div class="flow-note" style="margin-top:10px;">Only remaining quantities are suggested. Importing copies items into the PO; the draft stays in the project. Saving the supplier PO records what was ordered. Price and quantities can still be edited in the PO.</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;align-items:center;flex-wrap:wrap;margin-top:14px;">
+      <span id="draftImportCount" style="font-size:12px;color:#64748b;margin-right:auto;">0 selected</span>
+      <button class="btn btn-secondary" onclick="window.closeProjectDraftPicker()">Cancel</button>
+      <button class="btn btn-primary" onclick="window.importSelectedProjectDrafts()">Transfer to Supplier PO</button>
     </div>
   </div>
 </div>
@@ -1540,6 +1650,7 @@ async function loadAllData() {
     renderMaterials();
     renderSummary();
     if (typeof renderProjects === 'function') renderProjects();
+    renderPOProjectChecklist();
     if (typeof window.renderTrash === 'function') window.renderTrash();
     if (typeof window.updateTrashBadge === 'function') window.updateTrashBadge();
     populateSupplierSelect();
@@ -1635,9 +1746,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function viewProject(idx) {
   const proj = window.projects[idx];
-  const linkedPOs = (proj.poNumbers || []).map(pn => {
-    return (window.savedPOs || []).find(p => p.poNumber === pn) || { poNumber: pn, supplier: { name: '—' }, total: 0, items: [] };
-  });
+  const linkedPOs = linkedProjectPOs(proj);
   const poTotal = linkedPOs.reduce((s, po) => s + (po.total || 0), 0);
   const expenseTotal = (proj.otherExpenses || []).reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
   const grandTotal = poTotal + expenseTotal;
@@ -1692,6 +1801,19 @@ function viewProject(idx) {
       '<td></td></tr></tfoot></table></div>';
   }).join('');
 
+  // Planned purchase requests stay visible even before there is a supplier PO.
+  const projectDraftBlock=(proj.materialDraft || []).length ?
+    '<div style="margin:0 0 23px;"><div style="background:#1e3a8a;color:#fff;padding:9px 12px;border-radius:7px 7px 0 0;font-weight:700;font-size:12px;">📦 PROJECT MATERIAL REQUESTS · BY PREFERRED SUPPLIER</div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:11px;"><thead><tr style="background:#eff6ff;color:#1e3a8a;">' +
+    ['Item / Description','Preferred Supplier','Draft Qty','Ordered','Remaining'].map(h=>'<th style="padding:9px 10px;border:1px solid #dbeafe;text-align:left;">'+h+'</th>').join('') + '</tr></thead><tbody>' +
+    proj.materialDraft.map(item=>{const ordered=orderedDraftQty(proj.id,item.id);const remaining=Math.max(0,(Number(item.qty)||0)-ordered);
+      return '<tr><td style="padding:8px 10px;border:1px solid #e2e8f0;">'+projectSafeText(item.desc)+(item.itemDesc?' <small>'+projectSafeText(item.itemDesc)+'</small>':'')+'</td>'+ 
+       '<td style="padding:8px 10px;border:1px solid #e2e8f0;">'+projectSafeText(item.supplierName||'Unassigned')+'</td>'+ 
+       '<td style="padding:8px 10px;border:1px solid #e2e8f0;">'+Number(item.qty||0)+' '+projectSafeText(item.unit||'pc')+'</td>'+ 
+       '<td style="padding:8px 10px;border:1px solid #e2e8f0;">'+ordered+'</td>'+ 
+       '<td style="padding:8px 10px;border:1px solid #e2e8f0;font-weight:700;color:'+(remaining?'#b45309':'#047857')+';">'+remaining+'</td></tr>';}).join('') +
+    '</tbody></table><div style="font-size:10px;color:#64748b;padding:7px;">Ordered quantities are counted from saved supplier POs; remaining quantities are not yet ordered.</div></div>' : '';
+
   // Build other expenses block
   const categoryLabels = { materials:'Materials', labor:'Labor', transport:'Transport', tools:'Tools/Equipment', other:'Other' };
   const otherExpensesBlock = (proj.otherExpenses || []).length > 0 ?
@@ -1729,14 +1851,18 @@ function viewProject(idx) {
 
   const grandTotalRow =
     '<div style="background:#1a1a2e;color:#fff;border-radius:6px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;">' +
-    '<div><div style="font-weight:700;font-size:14px;letter-spacing:1px;">TOTAL FOR ' + proj.name.toUpperCase() + '</div>' +
+    '<div><div style="font-weight:700;font-size:14px;letter-spacing:1px;">LINKED PO VALUE + CASH PURCHASES FOR ' + projectSafeText(proj.name.toUpperCase()) + '</div>' +
     (expenseTotal > 0 ? '<div style="font-size:10px;color:#fde68a;margin-top:2px;">POs: ₱' + formatNum(poTotal) + ' + Other: ₱' + formatNum(expenseTotal) + '</div>' : '') +
     '</div><span style="font-family:monospace;font-size:20px;font-weight:800;color:#fef08a;">₱ ' + formatNum(grandTotal) + '</span></div>';
 
   document.getElementById('projectViewTitle').textContent = proj.name;
   document.getElementById('projectViewContent').innerHTML =
-    (proj.notes ? '<div style="font-size:12px;color:#666;margin-bottom:14px;padding:8px 12px;background:#f8f8f8;border-radius:6px;">' + proj.notes + '</div>' : '') +
-    supplierBlocks + otherExpensesBlock + grandTotalRow;
+    '<div class="flow-note" style="margin-bottom:14px;"><strong>Client PO:</strong> ' + projectSafeText(proj.clientPONumber || 'Pending / None') +
+    ' &nbsp; | &nbsp; <strong>Location:</strong> ' + projectSafeText(proj.location || 'Not specified') +
+    (proj.description ? '<div style="margin-top:4px;">' + projectSafeText(proj.description) + '</div>' : '') +
+    '<div style="margin-top:6px;">Linked Supplier PO amounts are shown in full. When a PO belongs to multiple projects, this is <strong>not an allocated project cost</strong>.</div></div>' +
+    (proj.notes ? '<div style="font-size:12px;color:#666;margin-bottom:14px;padding:8px 12px;background:#f8f8f8;border-radius:6px;">' + projectSafeText(proj.notes) + '</div>' : '') +
+    projectDraftBlock + supplierBlocks + otherExpensesBlock + grandTotalRow;
 
   window._viewingProjectIdx = idx;
   document.getElementById('projectViewModal').classList.add('open');
@@ -1820,6 +1946,7 @@ function renderItems() {
       <td style="text-align:center;cursor:grab;color:var(--text3);font-size:15px;user-select:none;" title="Drag to reorder">⠿</td>
       <td style="text-align:center;color:var(--text3);font-size:12px;">${idx + 1}</td>
       <td>
+        ${item.sourceProjectId ? `<div class="project-pill" style="margin-bottom:6px;">🗂️ ${projectSafeText((window.projects||[]).find(p=>p.id===item.sourceProjectId)?.name || 'Project Draft')}</div>` : ''}
         <div class="desc-stack">
           <input data-itemkey="desc-${idx}" value="${(item.desc||'').replace(/"/g,'&quot;')}" placeholder="Item Name">
           <textarea data-itemkey="itemDesc-${idx}" placeholder="Description / Measurement" rows="1" style="resize:none;overflow:hidden;min-height:32px;width:100%;box-sizing:border-box;">${(item.itemDesc||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
@@ -1916,12 +2043,298 @@ function updateItem(idx, field, val) {
 // ========== PROJECTS ==========
 window.projects = [];
 
-async function saveProjects() {
-  try {
-    await setDoc(doc(db, getCompany().firestoreKey + '_projects', 'projects'), { list: window.projects });
-  } catch(e) {}
-  localStorage.setItem(getCompany().localKeyPOs.replace('_pos','_projects'), JSON.stringify(window.projects));
+// Keep one stable display order per company, stored with the existing project records.
+// Older projects with no stored order are initially arranged newest-first when dates exist.
+function prepareProjectDisplayOrder() {
+  const projects=window.projects || [];
+  if (!projects.length) return;
+  const hasAllRanks=projects.every(p=>Number.isFinite(p.displayOrder));
+  if (!hasAllRanks) {
+    // Preserve any previously ranked entries, then place unranked entries in their
+    // creation-date order (falling back to their current order for legacy records).
+    const original=new Map(projects.map((p,i)=>[p,i]));
+    projects.sort((a,b)=>{
+      const ar=Number.isFinite(a.displayOrder),br=Number.isFinite(b.displayOrder);
+      if (ar && br) return a.displayOrder-b.displayOrder || original.get(a)-original.get(b);
+      if (ar!==br) return ar?-1:1;
+      const at=Date.parse(a.createdAt || '')||0,bt=Date.parse(b.createdAt || '')||0;
+      return bt-at || original.get(a)-original.get(b);
+    });
+    projects.forEach((project,i)=>{project.displayOrder=i;});
+  } else {
+    projects.sort((a,b)=>a.displayOrder-b.displayOrder);
+  }
 }
+function setProjectDisplayOrder() {
+  (window.projects || []).forEach((project,index)=>{project.displayOrder=index;});
+}
+
+let projectSaveQueue=Promise.resolve();
+async function saveProjects() {
+  const company=getCompany();
+  const snapshot=JSON.parse(JSON.stringify(window.projects || []));
+  localStorage.setItem(company.localKeyPOs.replace('_pos','_projects'), JSON.stringify(snapshot));
+  // Serialize writes so quick consecutive drag/move actions cannot restore an older order.
+  const persist=async()=>{
+    try {
+      await setDoc(doc(db, company.firestoreKey + '_projects', 'projects'), { list: snapshot });
+      return true;
+    } catch(e) {
+      console.warn('Projects saved locally; Firebase sync unavailable.',e);
+      return false;
+    }
+  };
+  projectSaveQueue=projectSaveQueue.then(persist,persist);
+  return projectSaveQueue;
+}
+
+function projectSafeText(v) { return escapeSummaryText(v); }
+function stableProjectId(project, i) {
+  return project.id || ('legacy_' + i + '_' + String(project.createdAt || project.name || 'project').replace(/[^a-zA-Z0-9]/g, '').slice(0,35));
+}
+function normalizeProjects() {
+  (window.projects || []).forEach((project,i) => {
+    if (!project.id) project.id = stableProjectId(project,i);
+    if (!Array.isArray(project.poNumbers)) project.poNumbers = [];
+    if (!Array.isArray(project.materialDraft)) project.materialDraft = [];
+    project.materialDraft.forEach((item,k) => { if (!item.id) item.id = project.id + '_material_' + k; });
+  });
+}
+function newFlowId() { return 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,10); }
+function relatedProjects(po) {
+  normalizeProjects();
+  return (window.projects || []).filter(project =>
+    (po.projectIds || []).includes(project.id) || (project.poNumbers || []).includes(po.poNumber));
+}
+function linkedProjectPOs(project) {
+  return (window.savedPOs || []).filter(po =>
+    (project.poNumbers || []).includes(po.poNumber) || (po.projectIds || []).includes(project.id));
+}
+function orderedDraftQty(projectId, draftId) {
+  return (window.savedPOs || []).reduce((sum,po) => sum + (po.items || []).reduce((n,item) =>
+    n + (item.sourceProjectId === projectId && item.sourceDraftId === draftId ? (Number(item.qty) || 0) : 0), 0), 0);
+}
+function projectDraftPending(project) {
+  return (project.materialDraft || []).filter(item => (Number(item.qty) || 0) > orderedDraftQty(project.id,item.id) + .00001);
+}
+function renderPOProjectChecklist(ids) {
+  normalizeProjects();
+  const dest = document.getElementById('poProjectChecklist');
+  if (!dest) return;
+  const active = ids !== undefined ? ids : Array.from(dest.querySelectorAll('input:checked')).map(c => c.value);
+  dest.innerHTML = (window.projects || []).length ? window.projects.map(project => `
+     <label class="po-project-choice"><input class="po-project-check" type="checkbox" value="${projectSafeText(project.id)}" ${active.includes(project.id)?'checked':''}>
+     <span><strong>${projectSafeText(project.name)}</strong><br><span style="color:#64748b;font-size:11px;">Client PO: ${projectSafeText(project.clientPONumber || 'Pending / None')} · ${projectSafeText(project.location || 'Location not set')}</span></span></label>
+  `).join('') : '<div style="color:#64748b;font-size:12px;padding:10px;">No saved projects yet. You can still enter a Temporary / Manual Project Name below.</div>';
+  dest.querySelectorAll('input').forEach(check => check.addEventListener('change', ()=>{ saveDraft();updateMultiProjectNotice(); }));
+  updateMultiProjectNotice();
+}
+function updateMultiProjectNotice(){
+  const notice=document.getElementById('poMultiProjectNotice');if(!notice)return;
+  const selected=(window.projects||[]).filter(project=>selectedPOProjectIds().includes(project.id));
+  if(selected.length <= 1){notice.style.display='none';return;}
+  notice.style.display='block';
+  const differentSites=new Set(selected.map(project=>(project.location||'').trim().toLowerCase()).filter(Boolean)).size>1;
+  notice.innerHTML='<strong>⚠️ Shared supplier PO: '+selected.length+' projects.</strong> '+
+    (differentSites?'These projects have different locations. Confirm the correct <strong>Delivery Location / Site</strong> above before generating the supplier PDF.':
+     'Check whether the selected projects require one delivery site or separate deliveries.')+
+     ' Project names and client PO numbers stay internal.';
+}
+function selectedPOProjectIds() {
+  return Array.from(document.querySelectorAll('#poProjectChecklist input:checked')).map(el => el.value);
+}
+function poProjectSummaryHTML(po) {
+  const names = relatedProjects(po).map(project => projectSafeText(project.name));
+  if (po.manualProjectName) names.push('Manual: ' + projectSafeText(po.manualProjectName));
+  return names.length ? names.map(n => '<span class="project-pill" style="margin:2px 2px 0 0;">'+n+'</span>').join('') : '<span style="color:#94a3b8;font-size:11px;">Unassigned</span>';
+}
+window.renderPOProjectChecklist = renderPOProjectChecklist;
+
+// Supplier-linked purchase requests are references to project drafts, not additional PO records.
+function supplierKey(name) { return String(name || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase(); }
+function findSavedSupplier(name) { return (window.suppliers || []).find(s => supplierKey(s.name) === supplierKey(name)); }
+function supplierProjectDrafts(name, includeOrdered=false) {
+  const key = supplierKey(name); if (!key) return [];
+  normalizeProjects();
+  return (window.projects || []).flatMap(project => (project.materialDraft || [])
+    .filter(item => supplierKey(item.supplierName) === key)
+    .map(item => ({project, item, ordered:orderedDraftQty(project.id,item.id), pending:Math.max(0,(Number(item.qty)||0)-orderedDraftQty(project.id,item.id))}))
+    .filter(row => includeOrdered || row.pending > .00001));
+}
+function updateProjectSupplierNames() {
+  const el=document.getElementById('projectSupplierNames'); if (!el) return;
+  const names=new Set([...(window.suppliers || []).map(s=>s.name),
+    ...(window.projects || []).flatMap(p=>(p.materialDraft || []).map(m=>m.supplierName).filter(Boolean))]);
+  el.innerHTML=[...names].sort().map(n=>'<option value="'+projectSafeText(n)+'"></option>').join('');
+}
+function setPOSupplierByName(name) {
+  const saved=findSavedSupplier(name);
+  const supplierName=saved?.name || String(name||'').trim();
+  const idx=saved ? (window.suppliers||[]).indexOf(saved) : -1;
+  const sel=document.getElementById('supplierSelect'); if(sel)sel.value=idx>=0?String(idx):'';
+  for(const [field,val] of Object.entries({suppName:supplierName,suppContact:saved?.contact||'',suppTel:saved?.tel||'',suppFax:saved?.fax||'',suppAddress:saved?.address||''})) {
+    const el=document.getElementById(field);if(el)el.value=val;
+  }
+  updateSupplierDraftHint();
+}
+function updateSupplierDraftHint() {
+  const hint=document.getElementById('supplierDraftHint');if(!hint)return;
+  const name=document.getElementById('suppName')?.value||'';
+  if(!name.trim()){hint.textContent='Select a supplier to see linked pending project materials.';return;}
+  const rows=supplierProjectDrafts(name);
+  const projects=new Set(rows.map(x=>x.project.id)).size;
+  hint.textContent=rows.length ? `📦 ${rows.length} pending material request(s) from ${projects} project(s). Use “Import Draft Materials” above to order.` : 'No pending project draft materials assigned to this supplier.';
+}
+window.updateSupplierDraftHint=updateSupplierDraftHint;
+window.supplierProjectDrafts=supplierProjectDrafts;
+window.setPOSupplierByName=setPOSupplierByName;
+
+function appendProjectDraftRow(item) {
+  const target = document.getElementById('projectDraftRows');
+  if (!target) return;
+  const row = document.createElement('tr');
+  row.dataset.draftId = item?.id || newFlowId();
+  const textFields=['desc','itemDesc','code','qty','unit','price'];
+  row.innerHTML = textFields.map(field =>
+    '<td><input data-draft-field="' + field + '" '+ (field === 'qty' || field === 'price' ?
+    'type="number" min="0" step="any"' : 'type="text"') + ' placeholder="' +
+    ({desc:'Material name',itemDesc:'Specs / dimensions',code:'Code',qty:'Qty',unit:'pc',price:'0.00'}[field]) + '"></td>').join('') +
+    '<td><button type="button" class="btn-remove" title="Remove draft material" onclick="this.closest(\'tr\').remove()">✕</button></td>';
+  // Insert supplier directly after material name; input is editable and autocompletes saved suppliers.
+  const supplierCell=document.createElement('td');
+  supplierCell.innerHTML='<input type="text" data-draft-field="supplierName" list="projectSupplierNames" placeholder="Choose / type supplier" autocomplete="off" style="min-width:140px;width:100%;">';
+  row.children[0].after(supplierCell);
+  target.appendChild(row);
+  updateProjectSupplierNames();
+  row.querySelectorAll('[data-draft-field]').forEach(inp => {
+    const field = inp.dataset.draftField;
+    inp.value = item?.[field] ?? (field === 'unit' ? 'pc' : '');
+  });
+}
+window.addProjectDraftRow = function(){ appendProjectDraftRow(); };
+function fillProjectDraftRows(items) {
+  document.getElementById('projectDraftRows').innerHTML = '';
+  (items || []).forEach(appendProjectDraftRow);
+  if (!(items || []).length) appendProjectDraftRow();
+}
+function collectProjectDraftRows() {
+  return Array.from(document.querySelectorAll('#projectDraftRows tr')).map(row => {
+    const read = f => row.querySelector('[data-draft-field="'+f+'"]')?.value.trim() || '';
+    const qty = Number(read('qty')) || 0, price = Number(read('price')) || 0;
+    return {id:row.dataset.draftId,desc:read('desc'),supplierName:read('supplierName'),itemDesc:read('itemDesc'),code:read('code'),qty,
+      unit:read('unit') || 'pc',price,amount:qty*price};
+  }).filter(x => x.desc && x.qty > 0);
+}
+function renderProjectPicker() {
+  normalizeProjects();
+  const container=document.getElementById('draftImportRows');
+  const filter=document.getElementById('draftSupplierFilter');
+  const currentPO=supplierKey(document.getElementById('suppName')?.value);
+  const candidates=(window.projects || []).map(project=>({project,
+    materials:(project.materialDraft || []).map(item=>({item,pending:Math.max(0,(Number(item.qty)||0)-orderedDraftQty(project.id,item.id))}))
+      .filter(row=>row.pending > .00001)})).filter(g=>g.materials.length);
+  const suppliers=[...new Set(candidates.flatMap(g=>g.materials.map(x=>x.item.supplierName?.trim()).filter(Boolean)))].sort((a,b)=>a.localeCompare(b));
+  const previous=filter.value;
+  const opts= currentPO ? [{value:currentPO,text:'Current PO supplier + unassigned'}] :
+    [{value:'all',text:'All suppliers (choose one per PO)'},{value:'unassigned',text:'Not assigned'}]
+    .concat(suppliers.map(n=>({value:supplierKey(n),text:n+' + unassigned'})));
+  filter.innerHTML=opts.map(o=>'<option value="'+projectSafeText(o.value)+'">'+projectSafeText(o.text)+'</option>').join('');
+  filter.value=currentPO || (opts.some(o=>o.value===previous)?previous:'all');
+  filter.disabled=!!currentPO;
+  document.getElementById('draftSupplierContext').textContent=currentPO?'Only matching or unassigned items can be imported.':'Pick the supplier before transferring.';
+  const selected=filter.value;
+  const groups=candidates.map(group=>({...group,materials:group.materials.filter(({item})=>
+    selected==='all' || (selected==='unassigned' ? !supplierKey(item.supplierName) : !supplierKey(item.supplierName) || supplierKey(item.supplierName)===selected))})).filter(g=>g.materials.length);
+  if (!groups.length) {
+    container.innerHTML='<div class="empty-state">No pending draft materials for this supplier. Change the supplier or add materials in Projects.</div>';
+    document.getElementById('draftImportCount').textContent='0 selected';return;
+  }
+  container.innerHTML=groups.map(({project,materials})=>`
+    <div style="margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:700;padding:9px 12px;background:#eef2ff;color:#1e3a8a;border-radius:8px;margin-bottom:6px;">${projectSafeText(project.name)} <span style="font-size:11px;color:#64748b;font-weight:400;">${projectSafeText(project.clientPONumber || 'No client PO yet')}</span></div>
+      ${materials.map(({item,pending})=>`<label class="project-draft-item"><input type="checkbox" class="project-import-check" data-project-id="${projectSafeText(project.id)}" data-draft-id="${projectSafeText(item.id)}" onchange="window.updateImportCount()">
+        <span style="flex:1;"><strong style="font-size:12px;">${projectSafeText(item.desc)}</strong><br><span style="font-size:11px;color:#64748b;">Supplier: <b>${projectSafeText(item.supplierName || 'Unassigned')}</b> · ${projectSafeText(item.itemDesc || item.code || 'No specifications')} · Remaining: ${pending} ${projectSafeText(item.unit || 'pc')}</span></span>
+        <span style="font-size:12px;font-family:monospace;white-space:nowrap;">₱${formatNum((Number(item.price)||0)*pending)}</span></label>`).join('')}
+    </div>`).join('');
+  window.updateImportCount();
+}
+window.renderProjectPicker=renderProjectPicker;
+window.openProjectDraftPicker=function(){renderProjectPicker();document.getElementById('draftImportModal').classList.add('open');};
+window.closeProjectDraftPicker = function(){document.getElementById('draftImportModal').classList.remove('open');};
+window.updateImportCount = function(){
+  const total = document.querySelectorAll('#draftImportRows .project-import-check:checked').length;
+  document.getElementById('draftImportCount').textContent = total + ' item(s) selected';
+};
+window.importSelectedProjectDrafts = function(){
+  const checks = Array.from(document.querySelectorAll('#draftImportRows .project-import-check:checked'));
+  if (!checks.length) { showToast('⚠️ Select at least one material'); return; }
+  const selectedDrafts=checks.map(cb => (window.projects||[]).find(p=>p.id===cb.dataset.projectId)?.materialDraft?.find(d=>d.id===cb.dataset.draftId)).filter(Boolean);
+  const assigned=[...new Set(selectedDrafts.map(x=>supplierKey(x.supplierName)).filter(Boolean))];
+  const current=document.getElementById('suppName').value.trim();
+  if(assigned.length>1){showToast('⚠️ Different preferred suppliers selected. Choose materials for just one supplier PO.');return;}
+  if(current && assigned.length && supplierKey(current)!==assigned[0]){showToast('⚠️ Selected material belongs to another supplier.');return;}
+  if(!current && assigned.length){setPOSupplierByName(selectedDrafts.find(x=>supplierKey(x.supplierName)===assigned[0]).supplierName);}
+  syncItemsFromDOM();
+  const linked = new Set(selectedPOProjectIds());
+  if (window._items.length === 1 && !window._items[0].desc && !(Number(window._items[0].price))) window._items = [];
+  let added=0, skipped=0;
+  checks.forEach(cb => {
+    const project = (window.projects || []).find(p => p.id === cb.dataset.projectId);
+    const draft = project?.materialDraft?.find(item => item.id === cb.dataset.draftId);
+    if (!project || !draft) return;
+    if (window._items.some(item => item.sourceProjectId === project.id && item.sourceDraftId === draft.id)) { skipped++;return; }
+    const pending = Math.max(0,(Number(draft.qty)||0)-orderedDraftQty(project.id,draft.id));
+    if (!pending) return;
+    window._items.push({...draft,qty:pending,amount:pending*(Number(draft.price)||0),
+      sourceProjectId:project.id,sourceDraftId:draft.id,sourceSupplierName:draft.supplierName||''});
+    linked.add(project.id);added++;
+  });
+  renderPOProjectChecklist([...linked]);
+  window._items.forEach((it,i)=>it.no=i+1);
+  renderItems(); saveDraft(); updateSupplierDraftHint();
+  window.closeProjectDraftPicker();
+  showToast(`✅ ${added} material(s) transferred${skipped ? '; '+skipped+' already in PO' : ''}. Save the PO to confirm.`);
+};
+window.startPOFromProject = function(idx){
+  const project=window.projects?.[idx];if(!project)return;
+  if (window._items?.some(it=>it.desc) && !confirm('Replace current unsaved PO items with this project draft?'))return;
+  window.currentEditPO=null;
+  window._items=[{no:1,desc:'',code:'',qty:1,unit:'pc',price:'',amount:0}];
+  ['suppName','suppContact','suppTel','suppFax','suppAddress','internalRemarks','quotationReference','deliveryLocation','deliveryDate','manualProjectName'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('supplierSelect').value='';
+  populatePONumberDropdown('');
+  renderPOProjectChecklist([project.id]);
+  document.getElementById('internalRemarks').value='For project: '+project.name+(project.clientPONumber ? ' | Client PO: '+project.clientPONumber : '');
+  document.getElementById('deliveryLocation').value=project.location||'';
+  switchTabDirect('po');window.scrollTo?.(0,0);
+  const pending=projectDraftPending(project);
+  const assigned=[...new Set(pending.map(item=>supplierKey(item.supplierName)).filter(Boolean))];
+  if(assigned.length>1){
+    renderItems(); saveDraft();
+    window.openProjectDraftPicker();
+    showToast('📦 Multiple suppliers in this project. Import materials for one supplier at a time.');return;
+  }
+  if(assigned.length) setPOSupplierByName(pending.find(it=>supplierKey(it.supplierName)===assigned[0]).supplierName);
+  if(pending.length) {
+    window._items=pending.map((item,i)=>({...item,no:i+1,qty:Math.max(0,item.qty-orderedDraftQty(project.id,item.id)),
+      sourceProjectId:project.id,sourceDraftId:item.id,sourceSupplierName:item.supplierName||''}));
+  }
+  renderItems();saveDraft();updateSupplierDraftHint();
+  showToast(pending.length ? '✅ Project materials transferred. Review supplier and save PO to mark ordered.' : '✅ Project linked; add supplier materials or import other projects.');
+};
+// From Suppliers tab, prepare a PO using all pending requests for the same supplier,
+// including requests from several projects. Selection remains editable before saving.
+window.startPOFromSupplier = function(idx){
+  const supplier=window.suppliers?.[idx];if(!supplier)return;
+  if (window._items?.some(it=>it.desc) && !confirm('Replace current unsaved PO items to prepare an order for this supplier?'))return;
+  window.currentEditPO=null;
+  window._items=[{no:1,desc:'',code:'',qty:1,unit:'pc',price:'',amount:0}];
+  ['internalRemarks','quotationReference','deliveryLocation','deliveryDate','manualProjectName'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  populatePONumberDropdown('');renderPOProjectChecklist([]);
+  setPOSupplierByName(supplier.name);renderItems();
+  switchTabDirect('po');window.scrollTo?.(0,0);saveDraft();
+  window.openProjectDraftPicker();
+};
 
 function renderProjects() {
   const list = document.getElementById('projectsList');
@@ -1933,12 +2346,13 @@ function renderProjects() {
     return;
   }
   if (empty) empty.style.display = 'none';
+  setupProjectDragSorting();
 
+  normalizeProjects();
+  prepareProjectDisplayOrder();
+  renderPOProjectChecklist();
   list.innerHTML = window.projects.map((proj, pi) => {
-    const linkedPOs = (proj.poNumbers || []).map(pn => {
-      const po = (window.savedPOs || []).find(p => p.poNumber === pn);
-      return po ? { ...po } : { poNumber: pn, supplier: { name: '—' }, total: 0 };
-    });
+    const linkedPOs = linkedProjectPOs(proj);
     const otherExpenses = proj.otherExpenses || [];
     const otherTotal = otherExpenses.reduce((s, e) => s + (e.amount || 0), 0);
     const poTotal = linkedPOs.reduce((s, po) => s + (po.total || 0), 0);
@@ -1974,13 +2388,34 @@ function renderProjects() {
         </div>
       </div>` : '';
 
-    return `<div class="card" style="padding:20px;">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+    const sharedCount = linkedPOs.filter(po => relatedProjects(po).length > 1).length;
+    const draftItems = proj.materialDraft || [];
+    const pending = projectDraftPending(proj);
+    const projectInfo = `<div class="project-meta-line"><strong>Client PO:</strong> ${projectSafeText(proj.clientPONumber || 'No Client PO / Pending')} &nbsp; · &nbsp; <strong>Location:</strong> ${projectSafeText(proj.location || 'Not specified')}</div>
+      ${proj.description ? `<div class="project-meta-line">${projectSafeText(proj.description)}</div>` : ''}`;
+    const draftList = draftItems.length ? `<div style="margin-top:12px;border-top:1px solid var(--border);padding-top:11px;"><div style="font-size:11px;font-weight:700;color:#1e3a8a;margin-bottom:7px;">📦 Material Draft · ${pending.length} pending</div>
+      ${draftItems.map(item => { const ordered=orderedDraftQty(proj.id,item.id);const left=Math.max(0,(Number(item.qty)||0)-ordered);
+        return `<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px solid #f1f5f9;padding:5px 0;font-size:12px;">
+          <span>${projectSafeText(item.desc)} <span style="color:#64748b;font-size:11px;">${projectSafeText(item.itemDesc||'')}</span><br><span style="color:#1d4ed8;font-size:11px;">🏢 ${projectSafeText(item.supplierName || 'Supplier not assigned')}</span></span>
+          <span style="white-space:nowrap;">${ordered}/${item.qty} ${projectSafeText(item.unit||'pc')} ordered <span class="project-pill ${left ? 'orange' : ''}">${left ? left+' left' : 'Complete'}</span></span>
+        </div>`;}).join('')}</div>` : '<div style="margin-top:11px;font-size:11px;color:#94a3b8;">No materials drafted yet.</div>';
+    return `<div class="card project-sort-card" data-project-idx="${pi}" style="padding:20px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
         <div>
-          <div style="font-size:16px;font-weight:700;color:var(--text1);">${proj.name}</div>
-          ${proj.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:2px;">${proj.notes}</div>` : ''}
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:3px;">
+            <div class="project-sort-controls">
+              <span class="project-drag-handle" data-drag-project="${pi}" draggable="true" tabindex="0" role="button" aria-label="Drag to reorder ${projectSafeText(proj.name)}" title="Drag to reorder">⠿ Drag</span>
+              <button class="project-move-btn" data-action="move-project-up" data-idx="${pi}" title="Move project up" aria-label="Move project up" ${pi===0?'disabled':''}>↑</button>
+              <button class="project-move-btn" data-action="move-project-down" data-idx="${pi}" title="Move project down" aria-label="Move project down" ${pi===window.projects.length-1?'disabled':''}>↓</button>
+            </div>
+            ${pi===0 ? '<span class="project-pill" style="font-size:10px;">Top of list</span>' : ''}
+          </div>
+          <div style="font-size:16px;font-weight:700;color:var(--text1);">${projectSafeText(proj.name)}</div>
+          ${projectInfo}
+          ${proj.notes ? `<div style="font-size:12px;color:var(--text3);margin-top:2px;">${projectSafeText(proj.notes)}</div>` : ''}
         </div>
-        <div style="display:flex;gap:8px;">
+        <div class="project-flow-buttons" style="display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" data-action="project-to-po" data-idx="${pi}">↗ Prepare Supplier PO</button>
           <button class="btn btn-secondary btn-sm" data-action="view-project" data-idx="${pi}">📋 View</button>
           <button class="btn btn-secondary btn-sm" data-action="edit-project" data-idx="${pi}">✏️ Edit</button>
           <button class="btn btn-sm" style="border:1px solid #e74c3c;color:#e74c3c;background:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;" data-action="delete-project" data-idx="${pi}">🗑 Delete</button>
@@ -1989,7 +2424,7 @@ function renderProjects() {
 
       <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
         <div style="background:var(--bg);border-radius:8px;padding:10px 16px;flex:1;min-width:120px;">
-          <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Total Spent</div>
+          <div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Linked PO Value + Cash Expenses</div>
           <div style="font-size:20px;font-weight:800;color:var(--accent);font-family:monospace;">₱ ${formatNum(grandTotal)}</div>
           ${otherTotal > 0 ? `<div style="font-size:10px;color:var(--text3);">PO: ₱${formatNum(poTotal)} + Other: ₱${formatNum(otherTotal)}</div>` : ''}
         </div>
@@ -2004,12 +2439,82 @@ function renderProjects() {
         </div>
       </div>
 
-      ${supplierRows ? `<div style="margin-top:8px;"><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Cost by Supplier</div>${supplierRows}</div>` : ''}
+      ${sharedCount ? `<div class="flow-note" style="margin-bottom:10px;"><strong>⚠️ ${sharedCount} shared supplier PO(s).</strong> Linked PO value is a reference, not this project's allocated cost. Shared POs appear in every linked project until item-level allocation is established.</div>` : ''}
+      ${supplierRows ? `<div style="margin-top:8px;"><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Supplier PO values (not cost allocation)</div>${supplierRows}</div>` : ''}
+      ${draftList}
       ${otherExpensesHTML}
     </div>`;
   }).join('');
 }
 
+
+
+// Arrange the array itself so all index-based project actions remain consistent.
+async function moveProjectTo(sourceIndex,targetIndex,insertAfter=false) {
+  const projects=window.projects || [];
+  if (!Number.isInteger(sourceIndex)||!Number.isInteger(targetIndex) ||
+      sourceIndex<0||targetIndex<0||sourceIndex>=projects.length||targetIndex>=projects.length) return;
+  let destination=targetIndex+(insertAfter?1:0);
+  if (sourceIndex<destination) destination--;
+  if (sourceIndex===destination) return;
+  const [project]=projects.splice(sourceIndex,1);
+  projects.splice(destination,0,project);
+  setProjectDisplayOrder();
+  renderProjects();
+  // saveProjects writes to the same company-scoped Firestore document/local cache
+  const synced=await saveProjects();
+  showToast(synced ? '✅ Project order saved' : '⚠️ Saved locally; Firebase sync unavailable');
+}
+window.moveProjectTo=moveProjectTo;
+function setupProjectDragSorting() {
+  const list=document.getElementById('projectsList');
+  if (!list || list.dataset.sortSetup==='true') return;
+  list.dataset.sortSetup='true';
+  let draggingIndex=null;
+  const clearIndicators=()=>list.querySelectorAll('.project-sort-card').forEach(card=>card.classList.remove('project-drop-before','project-drop-after','project-current-drag'));
+  list.addEventListener('dragstart',event=>{
+    const handle=event.target.closest('[data-drag-project]');
+    if (!handle) {event.preventDefault();return;}
+    draggingIndex=Number(handle.dataset.dragProject);
+    if (!Number.isInteger(draggingIndex)) return;
+    event.dataTransfer.effectAllowed='move';
+    event.dataTransfer.setData('text/plain',String(draggingIndex));
+    handle.closest('.project-sort-card')?.classList.add('project-current-drag');
+  });
+  list.addEventListener('dragover',event=>{
+    if (draggingIndex===null) return;
+    const card=event.target.closest('.project-sort-card');
+    if (!card || !list.contains(card)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect='move';
+    const rect=card.getBoundingClientRect();
+    const after=event.clientY>=rect.top+rect.height/2;
+    clearIndicators();
+    const current=list.querySelector(`.project-sort-card[data-project-idx="${draggingIndex}"]`);
+    current?.classList.add('project-current-drag');
+    card.classList.add(after?'project-drop-after':'project-drop-before');
+  });
+  list.addEventListener('drop',event=>{
+    if (draggingIndex===null) return;
+    event.preventDefault();
+    const card=event.target.closest('.project-sort-card');
+    const from=draggingIndex;
+    draggingIndex=null;
+    clearIndicators();
+    if (!card||!list.contains(card)) return;
+    const rect=card.getBoundingClientRect();
+    moveProjectTo(from,Number(card.dataset.projectIdx),event.clientY>=rect.top+rect.height/2);
+  });
+  list.addEventListener('dragend',()=>{draggingIndex=null;clearIndicators();});
+  list.addEventListener('keydown',event=>{
+    const handle=event.target.closest('[data-drag-project]');
+    if (!handle||!event.altKey||!['ArrowUp','ArrowDown'].includes(event.key)) return;
+    event.preventDefault();
+    const idx=Number(handle.dataset.dragProject);
+    const next=event.key==='ArrowUp'?idx-1:idx+1;
+    if(next>=0 && next<(window.projects||[]).length){moveProjectTo(idx,next,event.key==='ArrowDown');list.querySelector(`.project-drag-handle[data-drag-project="${next}"]`)?.focus();}
+  });
+}
 
 
 // ========== OTHER EXPENSES (non-PO cash purchases) ==========
@@ -2090,6 +2595,11 @@ function openAddProjectModal() {
   document.getElementById('projectModalTitle').textContent = 'New Project';
   document.getElementById('projName').value = '';
   document.getElementById('projNotes').value = '';
+  document.getElementById('projClientPO').value = '';
+  document.getElementById('projDescription').value = '';
+  document.getElementById('projLocation').value = '';
+  updateProjectSupplierNames();
+  fillProjectDraftRows([]);
   renderProjPOCheckboxes([]);
   renderOtherExpenseRows([]);
   document.getElementById('projectModal').classList.add('open');
@@ -2102,7 +2612,12 @@ function editProject(idx) {
   document.getElementById('projectModalTitle').textContent = 'Edit Project';
   document.getElementById('projName').value = proj.name || '';
   document.getElementById('projNotes').value = proj.notes || '';
-  renderProjPOCheckboxes(proj.poNumbers || []);
+  document.getElementById('projClientPO').value = proj.clientPONumber || '';
+  document.getElementById('projDescription').value = proj.description || '';
+  document.getElementById('projLocation').value = proj.location || '';
+  updateProjectSupplierNames();
+  fillProjectDraftRows(proj.materialDraft || []);
+  renderProjPOCheckboxes(linkedProjectPOs(proj).map(p=>p.poNumber));
   renderOtherExpenseRows(window._editingExpenses);
   document.getElementById('projectModal').classList.add('open');
 }
@@ -2137,24 +2652,41 @@ async function saveProject() {
   const poNumbers = Array.from(checkboxes).map(cb => cb.value);
 
   const otherExpenses = getOtherExpenses();
-  const proj = { name, notes, poNumbers, otherExpenses, updatedAt: new Date().toISOString() };
-  if (_editingProjectIdx !== null) {
-    window.projects[_editingProjectIdx] = proj;
-  } else {
-    proj.createdAt = new Date().toISOString();
-    window.projects.push(proj);
-  }
+  const previous = _editingProjectIdx !== null ? window.projects[_editingProjectIdx] : null;
+  const proj = { ...(previous || {}), id:previous?.id || newFlowId(), name, notes,
+    clientPONumber:document.getElementById('projClientPO').value.trim(),
+    description:document.getElementById('projDescription').value.trim(),
+    location:document.getElementById('projLocation').value.trim(),
+    materialDraft:collectProjectDraftRows(), poNumbers, otherExpenses, updatedAt:new Date().toISOString() };
+  if (_editingProjectIdx !== null) window.projects[_editingProjectIdx] = proj;
+  else { proj.createdAt=new Date().toISOString(); window.projects.unshift(proj); setProjectDisplayOrder(); }
+  // Keep PO-side links and Project-side links in sync. Do not modify PO numbers or amounts.
+  const changedPOs=[];
+  (window.savedPOs || []).forEach(po=>{
+    const ids=new Set(po.projectIds || []);
+    const wasLinked=ids.has(proj.id) || (previous?.poNumbers || []).includes(po.poNumber);
+    const shouldLink=poNumbers.includes(po.poNumber);
+    if(wasLinked !== shouldLink || (shouldLink && !ids.has(proj.id))){
+      if(shouldLink) ids.add(proj.id); else ids.delete(proj.id);
+      po.projectIds=[...ids]; changedPOs.push(po);
+    }
+  });
   await saveProjects();
+  for(const po of changedPOs) await window.savePOToCloud(po);
   closeProjectModal();
-  renderProjects();
+  renderProjects();renderSuppliers();updateSupplierDraftHint();
   showToast('✅ Project saved!');
 }
 
 async function deleteProject(idx) {
   if (!confirm('Delete this project?')) return;
+  const removed = window.projects[idx];
   window.projects.splice(idx, 1);
+  const affected=(window.savedPOs || []).filter(po=>(po.projectIds||[]).includes(removed.id));
+  affected.forEach(po=>{po.projectIds=po.projectIds.filter(id=>id!==removed.id);});
   await saveProjects();
-  renderProjects();
+  for(const po of affected) await window.savePOToCloud(po);
+  renderProjects();renderSuppliers();updateSupplierDraftHint();
   showToast('🗑 Project deleted');
 }
 
@@ -2222,7 +2754,7 @@ window.onPOCheckChange = function(cb) {
 
 // ========== DRAFT AUTO-SAVE ==========
 const DRAFT_KEY = ('jvt_po_draft_' + window.ACTIVE_COMPANY);
-const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','quotationReference','deliveryLocation','vatOption','discountType','internalRemarks','suppName','suppContact','suppTel','suppFax','suppAddress'];
+const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','quotationReference','deliveryLocation','vatOption','discountType','internalRemarks','manualProjectName','suppName','suppContact','suppTel','suppFax','suppAddress'];
 
 function saveDraft() {
   if (window._draftPaused) return; // don't save during initial render
@@ -2239,6 +2771,7 @@ function saveDraft() {
     if (dv) draft.discountValue = dv.value;
     // Save items
     draft.items = window._items ? window._items.map(i => ({ ...i })) : [];
+    draft.projectIds = selectedPOProjectIds();
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
   } catch(e) { /* silent */ }
 }
@@ -2270,9 +2803,8 @@ function applyDraft(draft) {
     if (draft.preparedBy) {
       renderPreparedBySelect(draft.preparedBy);
     }
-    if (draft.items && draft.items.length > 0) {
-      window._items = draft.items;
-    }
+    if (draft.items && draft.items.length > 0) window._items = draft.items;
+    renderPOProjectChecklist(draft.projectIds || []);
     renderItems();
     calcTotal();
   } catch(e) { console.error('applyDraft error:', e); }
@@ -2337,14 +2869,16 @@ function populateSupplierSelect() {
   });
 }
 
+document.addEventListener('input', e=>{if(e.target?.id==='suppName') updateSupplierDraftHint();});
 function fillSupplier(idx) {
-  if (idx === '') return;
+  if (idx === '') {updateSupplierDraftHint();return;}
   const s = window.suppliers[idx];
   document.getElementById('suppName').value = s.name || '';
   document.getElementById('suppContact').value = s.contact || '';
   document.getElementById('suppTel').value = s.tel || '';
   document.getElementById('suppFax').value = s.fax || '';
   document.getElementById('suppAddress').value = s.address || '';
+  updateSupplierDraftHint();
 
   // Find matching materials folder for this supplier
   const supplierName = s.name.toLowerCase().trim();
@@ -2436,8 +2970,16 @@ function saveSupplier() {
   const s = {};
   ['name','contact','tel','fax','address'].forEach(f => s[f] = document.getElementById('ms_'+f).value.trim());
   if (!s.name) return alert('Company name is required.');
+  const old=window.editingSupplierIdx>=0 ? window.suppliers[window.editingSupplierIdx]?.name : null;
   if (window.editingSupplierIdx >= 0) window.suppliers[window.editingSupplierIdx] = s;
   else window.suppliers.push(s);
+  if(old && supplierKey(old)!==supplierKey(s.name)) {
+    let changed=false;
+    (window.projects||[]).forEach(project=>(project.materialDraft||[]).forEach(item=>{
+      if(supplierKey(item.supplierName)===supplierKey(old)){item.supplierName=s.name;changed=true;}
+    }));
+    if(changed) {saveProjects();renderProjects();}
+  }
   saveSuppliers();
   renderSuppliers();
   populateSupplierSelect();
@@ -2458,28 +3000,39 @@ function saveSuppliers() {
 }
 
 function renderSuppliers() {
-  const grid = document.getElementById('suppliersGrid');
-  if (!(window.suppliers || []).length) {
-    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏢</div><p>No window.suppliers yet.</p></div>';
-    return;
+  const grid=document.getElementById('suppliersGrid');
+  if (!(window.suppliers||[]).length){
+    grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="icon">🏢</div><p>No suppliers yet. Add a supplier first, then assign it to project draft materials.</p></div>';return;
   }
-  const sortedSuppliers = (window.suppliers || []).map((s, i) => ({s, i})).sort((a,b) => a.s.name.localeCompare(b.s.name));
-  grid.innerHTML = sortedSuppliers.map(({s, i}) => `
-    <div class="supplier-card">
+  const sorted=(window.suppliers||[]).map((s,i)=>({s,i})).sort((a,b)=>a.s.name.localeCompare(b.s.name));
+  grid.innerHTML=sorted.map(({s,i})=>{
+    const drafts=supplierProjectDrafts(s.name);
+    const allLinked=supplierProjectDrafts(s.name,true).sort((a,b)=>b.pending-a.pending);
+    const projectCount=new Set(allLinked.map(row=>row.project.id)).size;
+    const estimate=drafts.reduce((sum,row)=>sum+row.pending*(Number(row.item.price)||0),0);
+    return `<div class="supplier-card">
       <div class="badge">Supplier</div>
-      <div class="supplier-name">${s.name}</div>
-      <div class="supplier-info">
-        ${s.contact ? `👤 ${s.contact}<br>` : ''}
-        ${s.tel ? `📞 ${s.tel}<br>` : ''}
-        ${s.fax ? `📠 ${s.fax}<br>` : ''}
-        ${s.address ? `📍 ${s.address}` : ''}
+      <div class="supplier-name">${projectSafeText(s.name)}</div>
+      <div class="supplier-info">${s.contact?'👤 '+projectSafeText(s.contact)+'<br>':''}${s.tel?'📞 '+projectSafeText(s.tel)+'<br>':''}${s.fax?'📠 '+projectSafeText(s.fax)+'<br>':''}${s.address?'📍 '+projectSafeText(s.address):''}</div>
+      <div class="supplier-draft-summary">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+          <strong style="font-size:12px;color:#1e3a8a;">📦 Linked Project Materials</strong>
+          <span class="project-pill ${drafts.length?'orange':''}">${drafts.length} pending / ${allLinked.length} linked</span>
+        </div>
+        <div style="color:#64748b;font-size:11px;margin-top:3px;">${projectCount} project(s) · Est. ₱${formatNum(estimate)}</div>
+        ${allLinked.length?allLinked.slice(0,3).map(({project,item,pending,ordered})=>`<div class="supplier-linked-material">
+          <span><strong>${projectSafeText(item.desc)}</strong><br><small>${projectSafeText(project.name)}${project.clientPONumber?' · '+projectSafeText(project.clientPONumber):''}</small></span>
+          <span style="white-space:nowrap;font-weight:700;color:${pending?'#b45309':'#047857'};">${pending ? pending+' '+projectSafeText(item.unit||'pc')+' left' : '✓ Ordered'}</span></div>`).join('')+
+          (allLinked.length>3?`<div style="color:#64748b;font-size:11px;margin-top:6px;">+ ${allLinked.length-3} more linked materials</div>`:''):
+          '<p style="font-size:11px;color:#94a3b8;margin-top:7px;">No project requests linked to this supplier yet.</p>'}
       </div>
-      <div class="supplier-actions">
+      <div class="supplier-actions" style="flex-wrap:wrap;">
+        <button class="btn btn-primary btn-sm" data-action="supplier-to-po" data-idx="${i}">↗ Prepare PO${drafts.length?' ('+drafts.length+')':''}</button>
         <button class="btn btn-secondary btn-sm" data-action="edit-supplier" data-idx="${i}">✏️ Edit</button>
         <button class="btn btn-sm" style="color:var(--accent);border-color:var(--accent);background:transparent;" data-action="delete-supplier" data-idx="${i}">🗑 Delete</button>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 // ========== MATERIALS ==========
@@ -2958,6 +3511,11 @@ function pickMaterial(ci, ii) {
 async function savePO() {
   syncItemsFromDOM(); // ensure all typed values are captured before saving
   const po = getPOData();
+  const mismatched=(po.items||[]).filter(it=>it.sourceSupplierName && supplierKey(it.sourceSupplierName)!==supplierKey(po.supplier?.name));
+  if(mismatched.length){
+    showToast('⚠️ Supplier mismatch: '+mismatched[0].desc+' is assigned to '+mismatched[0].sourceSupplierName+'. Please select the correct supplier.');
+    return;
+  }
   // Allow saving without PO number as a pending NO-PO ENTRY
   if (!po.poNumber) {
     po.poNumber = 'NO-PO-' + Date.now();
@@ -2981,11 +3539,27 @@ async function savePO() {
   localStorage.setItem(getCompany().localKeyPOs, JSON.stringify(window.savedPOs));
   // Save to Firebase
   await window.savePOToCloud(po);
+  // Keep existing project PO links as references. Shared POs never become duplicate PO records.
+  normalizeProjects();
+  let changedProjects=false;
+  (window.projects || []).forEach(project=>{
+    const has=(project.poNumbers || []).includes(po.poNumber);
+    const linked=(po.projectIds || []).includes(project.id);
+    if(linked && !has){project.poNumbers.push(po.poNumber);changedProjects=true;}
+    else if(!linked && has){project.poNumbers=project.poNumbers.filter(p=>p!==po.poNumber);changedProjects=true;}
+    if(window.currentEditPO?.poNumber && window.currentEditPO.poNumber!==po.poNumber && project.poNumbers.includes(window.currentEditPO.poNumber)){
+      project.poNumbers=project.poNumbers.filter(p=>p!==window.currentEditPO.poNumber);changedProjects=true;
+    }
+  });
+  if(changedProjects)await saveProjects();
+  window.currentEditPO=po;
   clearDraft(); const poNumParts = po.poNumber ? po.poNumber.split('-') : [];
   const poNum = parseInt(poNumParts[poNumParts.length - 1]);
   if (!isNaN(poNum)) localStorage.setItem('po_last_num_' + getCompany().id, poNum);
   showToast('✅ PO saved!');
   renderSummary();
+  renderProjects();renderSuppliers();updateSupplierDraftHint();
+  renderPOProjectChecklist((po.projectIds || []));
 }
 
 function getPOData() {
@@ -3004,6 +3578,8 @@ function getPOData() {
     quotationReference: document.getElementById('quotationReference').value.trim(),
     deliveryLocation: document.getElementById('deliveryLocation').value.trim(),
     internalRemarks: document.getElementById('internalRemarks').value.trim(),
+    projectIds: selectedPOProjectIds(),
+    manualProjectName: document.getElementById('manualProjectName').value.trim(),
     vatOption,
     vatAmount,
     subtotal,
@@ -3034,10 +3610,12 @@ function getPOData() {
 }
 
 function resetPO() {
-  clearDraft();
   if (!confirm('Start a new PO? Unsaved changes will be lost.')) return;
+  clearDraft();
+  window.currentEditPO = null;
   window._items = [{ no: 1, desc: '', code: '', qty: '', unit: 'pc', price: '', amount: 0 }];
-  ['suppName','suppContact','suppTel','suppFax','suppAddress','internalRemarks','quotationReference','deliveryLocation','deliveryDate'].forEach(id => document.getElementById(id).value = '');
+  ['suppName','suppContact','suppTel','suppFax','suppAddress','internalRemarks','quotationReference','deliveryLocation','deliveryDate','manualProjectName'].forEach(id => document.getElementById(id).value = '');
+  renderPOProjectChecklist([]);
   document.getElementById('supplierSelect').value = '';
   populatePONumberDropdown('');
   setDefaultDates();
@@ -3151,6 +3729,7 @@ function renderSummary() {
     if (chosenSupplier && summarySupplierKey(po) !== chosenSupplier) return false;
     if (!query) return true;
     return [po.poNumber, po.supplier?.name, po.internalRemarks, po.date,
+      po.manualProjectName, ...relatedProjects(po).flatMap(p=>[p.name,p.clientPONumber,p.location]),
       ...(po.items || []).map(i => i.desc || i.name || '')]
       .some(v => String(v || '').toLocaleLowerCase().includes(query));
   });
@@ -3200,7 +3779,7 @@ function renderSummary() {
       const remarks = String(po.internalRemarks || '').trim();
       return `<tr ${collapsed ? 'style="display:none"' : ''}>
         <td style="text-align:center;width:36px;"><input type="checkbox" class="po-row-check" data-ponum="${escapeSummaryText(po.poNumber || String(realIdx))}" ${isChk ? 'checked' : ''} onchange="window.onPOCheckChange(this)" style="cursor:pointer;width:15px;height:15px;"></td>
-        <td><span class="po-num-tag" style="${po.isNoPO ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : ''}">${escapeSummaryText(poLabel)}</span></td>
+        <td><span class="po-num-tag" style="${po.isNoPO ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : ''}">${escapeSummaryText(poLabel)}</span><div style="max-width:240px;margin-top:4px;">${poProjectSummaryHTML(po)}</div></td>
         <td style="white-space:nowrap;">${escapeSummaryText(po.date || '—')}</td>
         <td><div class="summary-remarks${remarks ? '' : ' empty'}" title="${escapeSummaryText(remarks)}">${remarks ? escapeSummaryText(remarks) : 'No remarks'}</div></td>
         <td style="font-family:'DM Mono',monospace;font-weight:500;white-space:nowrap;">₱${formatNum(po.total)}</td>
@@ -3233,6 +3812,8 @@ function loadPOEdit(i) {
   document.getElementById('quotationReference').value = po.quotationReference || '';
   document.getElementById('deliveryLocation').value = po.deliveryLocation || '';
   document.getElementById('internalRemarks').value = po.internalRemarks || '';
+  document.getElementById('manualProjectName').value = po.manualProjectName || '';
+  renderPOProjectChecklist(relatedProjects(po).map(project=>project.id));
   const vatEl = document.getElementById('vatOption');
   if (vatEl && po.vatOption) vatEl.value = po.vatOption;
   const dtEl = document.getElementById('discountType');
@@ -3245,6 +3826,7 @@ function loadPOEdit(i) {
   document.getElementById('suppTel').value = po.supplier?.tel || '';
   document.getElementById('suppFax').value = po.supplier?.fax || '';
   document.getElementById('suppAddress').value = po.supplier?.address || '';
+  updateSupplierDraftHint();
   window._items = (po.items || []).map(it => ({ ...it }));
   window._draftPaused = false;
   renderItems();
@@ -3464,7 +4046,7 @@ function openPOPrintView() {
   const css = `
     *{box-sizing:border-box;}html,body{margin:0;padding:0;background:white;color:#111;}
     body{font-family:Arial,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    #po-print-area{width:100%;max-width:100%!important;margin:0 auto!important;padding:12mm!important;}
+    #po-print-area{width:100%;max-width:100%!important;margin:0 auto!important;padding:18mm!important;}
     #po-print-area table{width:100%;border-collapse:collapse;}
     #po-print-area thead{display:table-header-group;}
     #po-print-area tfoot{display:table-footer-group;}
@@ -3472,7 +4054,7 @@ function openPOPrintView() {
     #po-print-area td,#po-print-area th{overflow-wrap:anywhere;}
     #po-print-area img{max-width:100%;}
     @media print {
-      @page { size:A4 portrait; margin:12mm 12mm 17mm; 
+      @page { size:A4 portrait; margin:19mm 18mm 21mm; 
         @bottom-right {content:'Page ' counter(page) ' / ' counter(pages);font:9px Arial;color:#64748b;}
       }
       body{padding:0;}
@@ -3697,9 +4279,13 @@ function setupEventDelegation() {
       case 'preview-po': previewSavedPO(idx); break;
       case 'delete-po': deletePO(idx); break;
       // Suppliers
+      case 'supplier-to-po': window.startPOFromSupplier(idx); break;
       case 'edit-supplier': openSupplierModal(idx); break;
       case 'delete-supplier': deleteSupplier(idx); break;
       // Projects
+      case 'move-project-up': moveProjectTo(idx,idx-1); break;
+      case 'move-project-down': moveProjectTo(idx,idx+1,true); break;
+      case 'project-to-po': window.startPOFromProject(idx); break;
       case 'view-project': viewProject(idx); break;
       case 'edit-project': editProject(idx); break;
       case 'delete-project': deleteProject(idx); break;
