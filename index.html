@@ -216,6 +216,7 @@
   .summary-table th { background: var(--surface2); padding: 10px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text2); border-bottom: 1px solid var(--border); }
   .summary-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
   .summary-table tr:hover td { background: var(--surface2); }
+  .summary-row-supplier {display:block;min-width:140px;max-width:260px;font-size:12px;font-weight:700;line-height:1.4;color:var(--accent2);white-space:normal;overflow-wrap:anywhere;}
   .status-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
   .status-draft { background: #fff3cd; color: #856404; }
   .status-saved { background: #d1e7dd; color: #0f5132; }
@@ -706,12 +707,13 @@
      <div class="summary-metric"><div class="metric-label">Total Amount</div><div id="summaryGrandTotal" class="metric-value">₱0.00</div></div>
    </div>
    <div class="card" style="padding:0;overflow-x:auto;">
-     <table class="summary-table" id="summaryTable" style="min-width:850px;">
+     <table class="summary-table" id="summaryTable" style="min-width:980px;">
       <thead>
         <tr>
           <th style="width:36px;"><input type="checkbox" id="selectAllPOs" title="Select All" onchange="window.toggleSelectAllPOs(this.checked)" style="cursor:pointer;width:15px;height:15px;"></th>
           <th>PO Number</th>
           <th>Date</th>
+          <th>Supplier</th>
            <th>Internal Remarks</th>
            <th>Total</th>
            <th>Status</th>
@@ -719,7 +721,7 @@
         </tr>
       </thead>
       <tbody id="summaryBody">
-        <tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>
+        <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3);">No saved POs yet.</td></tr>
       </tbody>
     </table>
   </div>
@@ -1715,7 +1717,7 @@ function updatePONumberReference() {
   const latest = getLatestSavedNumberedPO();
   const lastNumber = latest?.poNumber || '—';
   const nextNumber = generateNextPONumber();
-  const supplier = latest?.supplier?.name?.trim() || 'Supplier not specified';
+  const supplier = latest ? summarySupplierName(latest) : 'Supplier not specified';
   const details = latest ? `${supplier} · ${latest.date || 'Date not specified'}` : 'No saved numbered PO yet for this company.';
   const values = {
     summaryLatestPONumber: lastNumber,
@@ -4351,8 +4353,14 @@ function escapeSummaryText(value) {
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
   })[c]);
 }
+// Supplier name is shown in every PO row, even when supplier grouping is off.
+// The fallbacks also cover older records that saved the supplier as plain text.
+function summarySupplierName(po) {
+  const savedName = typeof po?.supplier === 'string' ? po.supplier : po?.supplier?.name;
+  return String(savedName || po?.supplierName || po?.suppName || '').trim() || 'Unassigned Supplier';
+}
 function summarySupplierKey(po) {
-  return String(po.supplier?.name || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase() || '__NO_SUPPLIER__';
+  return summarySupplierName(po).replace(/\s+/g, ' ').toLocaleUpperCase();
 }
 window._collapsedSuppliers = window._collapsedSuppliers || new Set();
 window._supplierGroupKeys = [];
@@ -4386,7 +4394,7 @@ function renderSummary() {
   const supplierMap = new Map();
   all.forEach(({po}) => {
     const key = summarySupplierKey(po);
-    if (!supplierMap.has(key)) supplierMap.set(key, String(po.supplier?.name || '').trim() || 'Unassigned Supplier');
+    if (!supplierMap.has(key)) supplierMap.set(key, summarySupplierName(po));
   });
   const selectedSupplier = supplierSelect ? supplierSelect.value : '';
   if (supplierSelect) {
@@ -4406,7 +4414,7 @@ function renderSummary() {
     if (_filter === 'withpo' && po.isNoPO) return false;
     if (chosenSupplier && summarySupplierKey(po) !== chosenSupplier) return false;
     if (!query) return true;
-    return [po.poNumber, po.supplier?.name, po.internalRemarks, po.date,
+    return [po.poNumber, summarySupplierName(po), po.internalRemarks, po.date,
       po.manualProjectName, ...relatedProjects(po).flatMap(p=>[p.name,p.clientPONumber,p.location]),
       ...(po.items || []).map(i => i.desc || i.name || '')]
       .some(v => String(v || '').toLocaleLowerCase().includes(query));
@@ -4415,7 +4423,7 @@ function renderSummary() {
   // No Entry stays last for number-based sorts; it never becomes a sequence number.
   const sortMode = document.getElementById('summarySort')?.value || 'date_desc';
   const grouped = document.getElementById('summaryGroupBySupplier')?.checked !== false;
-  const supplierLabel = p => (p.supplier?.name || 'Unassigned Supplier').trim();
+  const supplierLabel = summarySupplierName;
   const compareSupplier = (a,b) => supplierLabel(a).localeCompare(supplierLabel(b),undefined,{numeric:true,sensitivity:'base'});
   const poNumberCompare = (a,b) => {
     const aBlank = Boolean(a.isNoPO || !String(a.poNumber||'').trim() || /^NO-PO(?:-|$)/i.test(a.poNumber||''));
@@ -4473,7 +4481,7 @@ function renderSummary() {
     button.title=grouped ? 'Expand or collapse supplier groups' : 'Enable Group by supplier to use this action';
   });
   if (!records.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);">' +
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3);">' +
       (all.length ? 'No purchase orders match your filters.' : 'No saved purchase orders yet.') + '</td></tr>';
     const allCheck = document.getElementById('selectAllPOs');
     if (allCheck) { allCheck.checked = false; allCheck.indeterminate = false; }
@@ -4482,7 +4490,7 @@ function renderSummary() {
   const renderGroupHeader = ([key,group],gi) => {
     const collapsed=window._collapsedSuppliers.has(key);
     const groupTotal=group.records.reduce((sum,{po})=>sum+(Number(po.total)||0),0);
-    return `<tr class="supplier-group-row"><td colspan="7">
+    return `<tr class="supplier-group-row"><td colspan="8">
       <button type="button" class="supplier-group-btn" onclick="window.toggleSupplierGroup(${gi})" aria-expanded="${!collapsed}">
         <span style="font-size:13px;">${collapsed ? '▶' : '▼'}</span>
         <span style="font-size:17px;">🏢</span>
@@ -4499,6 +4507,7 @@ function renderSummary() {
         <td style="text-align:center;width:36px;"><input type="checkbox" class="po-row-check" data-poid="${escapeSummaryText(poRecordKey(po))}" ${isChk ? 'checked' : ''} onchange="window.onPOCheckChange(this)" style="cursor:pointer;width:15px;height:15px;"></td>
         <td><span class="po-num-tag" style="white-space:nowrap;${po.isNoPO ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : ''}">${escapeSummaryText(poLabel)}</span><div style="max-width:240px;margin-top:4px;">${poProjectSummaryHTML(po)}</div></td>
         <td style="white-space:nowrap;">${escapeSummaryText(po.date || '—')}</td>
+        <td><span class="summary-row-supplier" title="${escapeSummaryText(summarySupplierName(po))}">${escapeSummaryText(summarySupplierName(po))}</span></td>
         <td><div class="summary-remarks${remarks ? '' : ' empty'}" title="${escapeSummaryText(remarks)}">${remarks ? escapeSummaryText(remarks) : 'No remarks'}</div></td>
         <td style="font-family:'DM Mono',monospace;font-weight:500;white-space:nowrap;">₱${formatNum(po.total)}</td>
         <td>${window.renderStatusDropdown(po, realIdx)}</td>
