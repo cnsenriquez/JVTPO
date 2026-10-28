@@ -298,6 +298,20 @@
   .desc-stack textarea { font-size: 12px; color: var(--text2); padding: 6px 10px; line-height: 1.4; }
   .desc-stack input:nth-child(2) { font-size: 11px; color: var(--text2); }
   .desc-stack input:nth-child(3) { font-size: 11px; font-family: 'DM Mono', monospace; color: var(--text3); }
+
+/* Multi-product catalog picker in the Project Draft Materials editor. */
+.project-bulk-modal{background:#fff;border-radius:14px;padding:24px;max-width:850px;width:96%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 22px 70px rgba(15,23,42,.25);}
+.project-bulk-row{display:grid;grid-template-columns:24px minmax(0,1fr) 98px 112px;gap:12px;align-items:center;padding:11px 13px;border-bottom:1px solid #e5eaf1;background:#fff;cursor:pointer;}
+.project-bulk-row:hover{background:#f8fbff;}
+.project-bulk-row:has(input[type=checkbox]:checked){background:#eff6ff;}
+.project-bulk-row input[type=checkbox]{width:17px;height:17px;accent-color:#2563eb;}
+.project-bulk-row input[type=number]{width:100%;font-size:12px;background:white;text-align:center;}
+.project-bulk-row .bulk-price{font:600 12px 'DM Mono',monospace;text-align:right;color:#1e293b;}
+.project-bulk-row small{font-size:11px;color:#64748b;line-height:1.5;}
+.project-bulk-pills{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.project-bulk-pills span{font-size:11px;border-radius:99px;padding:4px 10px;background:#eff6ff;color:#1d4ed8;font-weight:600;}
+@media(max-width:550px){.project-bulk-modal{padding:14px;}.project-bulk-row{grid-template-columns:21px minmax(0,1fr) 66px;gap:7px;padding:10px 7px;}.project-bulk-row .bulk-price{grid-column:2/4;text-align:left;}.project-bulk-header-price{display:none;}}
+
 /* PROJECT -> DRAFT -> SUPPLIER PO workflow */
 .project-flow-help {font-size:12px;color:#64748b;margin:-4px 0 18px;line-height:1.6;}
 .project-meta-line {font-size:12px;color:var(--text2);margin-top:5px;line-height:1.6;}
@@ -397,7 +411,7 @@
     <div class="section-title">Create Purchase Order <span id="co-badge-po" style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--accent);color:#fff;margin-left:8px;vertical-align:middle;"></span></div>
     <div class="actions-row">
       <button class="btn btn-secondary btn-sm" onclick="window.resetPO()">New PO</button>
-      <button class="btn btn-outline btn-sm" onclick="window.showPreview()">👁 Preview</button>
+      <button class="btn btn-outline btn-sm" onclick="window.showPreview()" title="View only — PDF is available after saving in PO Summary">👁 Preview Only</button>
       <button class="btn btn-primary btn-sm" onclick="window.savePO()">💾 Save PO</button>
     </div>
   </div>
@@ -713,12 +727,17 @@
 <div class="modal-overlay" id="previewModal">
   <div style="background:#fff;border-radius:12px;padding:32px;max-width:750px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2);">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-      <span style="font-weight:600;font-size:16px;">PO Preview</span>
+      <span id="poPreviewModalTitle" style="font-weight:600;font-size:16px;">PO Preview</span>
       <div style="display:flex;gap:10px;">
-        <button class="btn btn-secondary btn-sm" onclick="window.printPO()">🖨 Print</button>
-        <button class="btn btn-primary btn-sm" onclick="window.exportPDF()">📄 Save as PDF</button>
-        <button class="btn btn-secondary btn-sm" onclick="window.closePreview()">✕ Close</button>
+        <div id="savedPOExportActions" style="display:none;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-secondary btn-sm" type="button" onclick="window.printPO()">🖨 Print</button>
+          <button class="btn btn-primary btn-sm" type="button" onclick="window.exportPDF()">📄 Save as PDF</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="button" onclick="window.closePreview()">✕ Close</button>
       </div>
+    </div>
+    <div id="previewStatusNote" role="status" style="border:1px solid #fcd34d;background:#fffbeb;color:#92400e;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;line-height:1.5;">
+      Preview only — save the PO first. PDF is available from PO Summary.
     </div>
     <div id="previewContent"></div>
   </div>
@@ -1305,6 +1324,12 @@ function switchCompany(id) {
   window.currentEditPO = null;
   const manu=document.getElementById('manualProjectName');if(manu)manu.value='';
   renderPOProjectChecklist([]);
+  window._draftPaused = true;
+  window._items = [{ no: 1, desc: '', code: '', qty: 1, unit: 'pc', price: '', amount: 0 }];
+  ['suppName','suppContact','suppTel','suppFax','suppAddress','internalRemarks','quotationReference','deliveryLocation','deliveryDate'].forEach(field => {
+    const el = document.getElementById(field); if (el) el.value = '';
+  });
+  const supplier = document.getElementById('supplierSelect'); if (supplier) supplier.value = '';
   updateCompanyUI();
   if (typeof window.loadAllData === 'function') window.loadAllData();
 }
@@ -1385,9 +1410,12 @@ function updateCompanyUI() {
     <div style="margin-bottom:18px;border:1px solid #dbeafe;border-radius:10px;padding:14px;background:#f8fbff;">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:5px;">
         <div style="font-size:13px;font-weight:700;color:#1e3a8a;">📦 Draft Materials / Purchase Request</div>
-        <button type="button" class="btn btn-outline btn-sm" onclick="window.addProjectDraftRow()">+ Add Material</button>
+        <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="window.openProjectBulkPicker()">📦 Pick Multiple Products</button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.addProjectDraftRow()">+ Manual Material</button>
+        </div>
       </div>
-      <div style="color:#64748b;font-size:11px;margin-bottom:10px;">Select a supplier first, then choose an existing catalog material to auto-fill its details and current price. Use Manual / New Material if it is not listed. Nothing is ordered until the Supplier PO is saved.</div>
+      <div style="color:#64748b;font-size:11px;margin-bottom:10px;">Use <strong>Pick Multiple Products</strong> to select several saved items from one supplier at once, including subfolders. Or use <strong>+ Manual Material</strong> for custom items. Selected items remain drafts until a Supplier PO is saved.</div>
       <div style="overflow-x:auto;"><table class="project-draft-table"><thead><tr><th style="min-width:195px;">Material / Item</th><th style="min-width:175px;">Preferred Supplier</th><th style="min-width:160px;">Specs</th><th style="min-width:85px;">Code</th><th style="min-width:65px;">Qty</th><th style="min-width:65px;">Unit</th><th style="min-width:100px;">Est. Price</th><th style="width:38px"></th></tr></thead><tbody id="projectDraftRows"></tbody></table></div>
       <datalist id="projectSupplierNames"></datalist>
       <p style="color:#64748b;font-size:11px;margin-top:9px;">Catalog material selection fills specs, code, unit, and estimated price. You can still edit the values. Existing project drafts stay editable and saved supplier links are preserved.</p>
@@ -1419,6 +1447,43 @@ function updateCompanyUI() {
       <button class="btn btn-primary" onclick="window.saveProject()">Save Project</button>
     </div>
   </div>
+</div>
+
+<!-- ============ PROJECT DRAFT: BULK SUPPLIER PRODUCTS PICKER ============ -->
+<div class="modal-overlay" id="projectBulkPickerModal" style="z-index:250;">
+ <div class="project-bulk-modal" role="dialog" aria-modal="true" aria-labelledby="projectBulkPickerTitle">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;">
+    <div>
+      <div id="projectBulkPickerTitle" style="font-size:17px;font-weight:800;color:#172554;">📦 Select Supplier Products</div>
+      <div style="font-size:12px;color:#64748b;line-height:1.6;margin-top:4px;">Pick several catalog products with quantities, then add them together to this project draft. No Supplier PO will be created yet.</div>
+    </div>
+    <button class="btn btn-secondary btn-sm" type="button" onclick="window.closeProjectBulkPicker()" aria-label="Close picker">✕</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;" id="projectBulkFilterGrid">
+   <div class="form-group"><label for="projectBulkSupplier">Supplier</label>
+      <select id="projectBulkSupplier" onchange="window.changeProjectBulkSupplier(this.value)"><option value="">— Choose a supplier —</option></select>
+   </div>
+   <div class="form-group"><label for="projectBulkSearch">Find products</label>
+      <input id="projectBulkSearch" type="search" placeholder="Search item, specs, code, subfolder…" oninput="window.renderProjectBulkPicker()" autocomplete="off">
+   </div>
+  </div>
+  <div class="project-bulk-pills" style="margin-bottom:10px;">
+     <span id="projectBulkAvailable">Select a supplier</span>
+     <span id="projectBulkSelected">0 selected</span>
+     <span id="projectBulkTotal">₱0.00 estimated</span>
+     <button type="button" class="btn btn-secondary btn-sm" style="margin-left:auto;" onclick="window.toggleProjectBulkVisible(true)">✓ Select visible</button>
+     <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleProjectBulkVisible(false)">Clear visible</button>
+  </div>
+  <div style="display:grid;grid-template-columns:24px minmax(0,1fr) 98px 112px;gap:12px;background:#f1f5f9;padding:9px 13px;font-size:10px;font-weight:700;letter-spacing:.4px;color:#64748b;text-transform:uppercase;">
+    <span></span><span>Product / Specifications</span><span style="text-align:center">Qty to draft</span><span class="project-bulk-header-price" style="text-align:right;">Unit price</span>
+  </div>
+  <div id="projectBulkProducts" style="flex:1;min-height:120px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:0 0 9px 9px;max-height:440px;" aria-live="polite"></div>
+  <div class="flow-note" style="margin-top:12px;">Existing matching project draft products will have their quantities increased, without changing their saved ID or manually adjusted price. Review quantities and click <strong>Save Project</strong> afterward.</div>
+  <div style="display:flex;gap:9px;justify-content:flex-end;align-items:center;margin-top:14px;">
+    <button class="btn btn-secondary" type="button" onclick="window.closeProjectBulkPicker()">Cancel</button>
+    <button class="btn btn-primary" type="button" id="projectBulkAddBtn" onclick="window.addProjectBulkProducts()" disabled>Add Selected to Draft</button>
+  </div>
+ </div>
 </div>
 
 <!-- ============ IMPORT PROJECT MATERIAL DRAFTS MODAL ============ -->
@@ -1513,7 +1578,8 @@ window.savePOToCloud = async function(po) {
   try {
     const id = po.poNumber.replace(/[^a-zA-Z0-9\-]/g,'_');
     await setDoc(doc(db, getCompany().poCollection || 'purchase_orders', id), po);
-  } catch(e) { console.error('savePO error:', e); showToast('⚠️ Save failed: ' + e.message); }
+    return true;
+  } catch(e) { console.error('savePO error:', e); showToast('⚠️ PO not saved to Firebase: ' + e.message); return false; }
 };
 
 window.deletePOFromCloud = async function(poNumber) {
@@ -2384,6 +2450,142 @@ function collectProjectDraftRows(){
       code:read('code'),qty,unit:read('unit')||'pc',price,amount:qty*price};
   }).filter(x=>x.desc && x.qty>0);
 }
+
+// ===== Bulk supplier catalog -> Project Draft Materials =====
+// One supplier at a time. Drafts are saved only by Save Project; PO records are untouched.
+let _projectBulkSupplier = '';
+let _projectBulkSelected = new Map(); // catalog ref -> requested quantity
+function projectBulkCatalogRows(){
+  return _projectBulkSupplier ? projectCatalogItems(_projectBulkSupplier) : [];
+}
+function projectBulkVisibleItems(){
+  const query=String(document.getElementById('projectBulkSearch')?.value||'').trim().toLocaleLowerCase();
+  return projectBulkCatalogRows().filter(x=>!query||[x.material.name,x.material.code,x.material.desc,x.group]
+    .some(v=>String(v||'').toLocaleLowerCase().includes(query)));
+}
+function updateProjectBulkTotals(){
+  const catalog=projectBulkCatalogRows();
+  const chosen=catalog.filter(x=>_projectBulkSelected.has(x.ref));
+  const estimate=chosen.reduce((sum,x)=>sum+(Number(_projectBulkSelected.get(x.ref))||0)*(Number(x.material.price)||0),0);
+  document.getElementById('projectBulkAvailable').textContent=catalog.length+' product(s) available';
+  document.getElementById('projectBulkSelected').textContent=chosen.length+' selected';
+  document.getElementById('projectBulkTotal').textContent='₱'+formatNum(estimate)+' estimated';
+  const add=document.getElementById('projectBulkAddBtn');
+  add.disabled=!chosen.length;
+  add.textContent=chosen.length?'Add '+chosen.length+' Product(s) to Draft':'Add Selected to Draft';
+}
+window.renderProjectBulkPicker=function(){
+  const holder=document.getElementById('projectBulkProducts');
+  const catalog=projectBulkCatalogRows();
+  const visible=projectBulkVisibleItems();
+  if(!_projectBulkSupplier){holder.innerHTML='<div class="empty-state" style="padding:40px 15px;">Choose a supplier to browse its saved products.</div>';updateProjectBulkTotals();return;}
+  if(!catalog.length){holder.innerHTML='<div class="empty-state" style="padding:40px 15px;">No catalog products for this supplier. Use “+ Manual Material” in the project editor instead.</div>';updateProjectBulkTotals();return;}
+  if(!visible.length){holder.innerHTML='<div class="empty-state" style="padding:40px 15px;">No matching products. Try a different search.</div>';updateProjectBulkTotals();return;}
+  holder.innerHTML=visible.map(x=>{
+    const m=x.material,checked=_projectBulkSelected.has(x.ref),quantity=_projectBulkSelected.get(x.ref)??1;
+    return `<div class="project-bulk-row" data-bulk-ref="${projectSafeText(x.ref)}">
+       <input type="checkbox" data-bulk-check="${projectSafeText(x.ref)}" ${checked?'checked':''} aria-label="Select ${projectSafeText(m.name)}">
+       <div style="min-width:0;"><strong style="font-size:12.5px;color:#0f172a;">${projectSafeText(m.name)}</strong>
+        <div style="margin-top:3px;"><small>${projectSafeText(m.code||'No code')} · ${projectSafeText(m.unit||'pc')}${x.group?' · '+projectSafeText(x.group):''}</small></div>
+        ${m.desc?'<small style="display:block;overflow-wrap:anywhere;">'+projectSafeText(m.desc)+'</small>':''}
+       </div>
+       <input type="number" data-bulk-qty="${projectSafeText(x.ref)}" min="0.001" step="any" value="${quantity}" aria-label="Quantity for ${projectSafeText(m.name)}">
+       <div class="bulk-price">₱${formatNum(Number(m.price)||0)}</div>
+    </div>`;
+  }).join('');
+  updateProjectBulkTotals();
+};
+window.changeProjectBulkSupplier=function(name){
+  if(name!==_projectBulkSupplier && _projectBulkSelected.size && !confirm('Change supplier? Your current product selections will be cleared.')){
+    document.getElementById('projectBulkSupplier').value=_projectBulkSupplier;return;
+  }
+  _projectBulkSupplier=name;
+  _projectBulkSelected=new Map();
+  document.getElementById('projectBulkSearch').value='';
+  window.renderProjectBulkPicker();
+};
+window.openProjectBulkPicker=function(){
+  const supplierSelect=document.getElementById('projectBulkSupplier');
+  const options=projectDraftSupplierOptions();
+  supplierSelect.replaceChildren(new Option('— Choose a supplier —',''));
+  options.forEach(name=>supplierSelect.add(new Option(name,name)));
+  // If this project already uses exactly one supplier, preselect it.
+  const assigned=[...new Set([...document.querySelectorAll('#projectDraftRows tr')].map(row=>rowDraftSupplierName(row)).filter(Boolean))];
+  const candidate=assigned.length===1 ? options.find(n=>supplierKey(n)===supplierKey(assigned[0])) : '';
+  _projectBulkSupplier=candidate||'';
+  _projectBulkSelected=new Map();
+  supplierSelect.value=_projectBulkSupplier;
+  document.getElementById('projectBulkSearch').value='';
+  const list=document.getElementById('projectBulkProducts');
+  list.onchange=e=>{
+    const checkbox=e.target.closest('[data-bulk-check]');
+    if(checkbox){
+      const ref=checkbox.dataset.bulkCheck;
+      const qty=list.querySelectorAll('[data-bulk-qty]');
+      const input=Array.from(qty).find(n=>n.dataset.bulkQty===ref);
+      const n=Number(input?.value)||1;
+      if(checkbox.checked)_projectBulkSelected.set(ref,n>0?n:1);
+      else _projectBulkSelected.delete(ref);
+      updateProjectBulkTotals();
+    }
+  };
+  list.oninput=e=>{
+    if(!e.target.matches('[data-bulk-qty]'))return;
+    const ref=e.target.dataset.bulkQty;
+    const n=Number(e.target.value);
+    if(_projectBulkSelected.has(ref))_projectBulkSelected.set(ref,n>0?n:0);
+    updateProjectBulkTotals();
+  };
+  window.renderProjectBulkPicker();
+  document.getElementById('projectBulkPickerModal').classList.add('open');
+};
+window.closeProjectBulkPicker=function(){document.getElementById('projectBulkPickerModal').classList.remove('open');};
+window.toggleProjectBulkVisible=function(checked){
+  projectBulkVisibleItems().forEach(x=>{
+    if(checked)_projectBulkSelected.set(x.ref,Math.max(0.001,Number(_projectBulkSelected.get(x.ref))||1));
+    else _projectBulkSelected.delete(x.ref);
+  });
+  window.renderProjectBulkPicker();
+};
+function findExistingProjectBulkRow(supplier,material){
+  return [...document.querySelectorAll('#projectDraftRows tr')].find(row=>{
+    const read=key=>String(row.querySelector('[data-draft-field="'+key+'"]')?.value||'').trim().toLocaleLowerCase();
+    return supplierKey(rowDraftSupplierName(row))===supplierKey(supplier)&&
+      read('desc')===String(material.name||'').trim().toLocaleLowerCase()&&
+      read('code')===String(material.code||'').trim().toLocaleLowerCase()&&
+      read('itemDesc')===String(material.desc||'').trim().toLocaleLowerCase()&&
+      read('unit')===String(material.unit||'pc').trim().toLocaleLowerCase();
+  });
+}
+window.addProjectBulkProducts=function(){
+  if(!_projectBulkSupplier)return showToast('⚠️ Choose a supplier first');
+  const products=projectBulkCatalogRows().filter(x=>_projectBulkSelected.has(x.ref));
+  if(!products.length)return showToast('⚠️ Select at least one product');
+  const invalid=products.find(x=>!(Number(_projectBulkSelected.get(x.ref))>0));
+  if(invalid)return showToast('⚠️ Enter a quantity above zero for every selected product');
+  let added=0,updated=0;
+  products.forEach(x=>{
+    const m=x.material,qty=Number(_projectBulkSelected.get(x.ref));
+    const existing=findExistingProjectBulkRow(_projectBulkSupplier,m);
+    if(existing){
+      const inp=existing.querySelector('[data-draft-field="qty"]');
+      inp.value=String((Number(inp.value)||0)+qty);
+      updated++;
+    }else{
+      appendProjectDraftRow({id:newFlowId(),desc:m.name||'',supplierName:_projectBulkSupplier,
+        itemDesc:m.desc||'',code:m.code||'',qty,unit:m.unit||'pc',price:Number(m.price)||0});
+      added++;
+    }
+  });
+  // Discard untouched starter rows to avoid clutter after bulk selection.
+  [...document.querySelectorAll('#projectDraftRows tr')].forEach(row=>{
+    const read=k=>String(row.querySelector('[data-draft-field="'+k+'"]')?.value||'').trim();
+    if(!read('desc')&&!read('qty')&&!read('price')&&!read('code')&&!read('itemDesc')&&!rowDraftSupplierName(row))row.remove();
+  });
+  window.closeProjectBulkPicker();
+  showToast('✅ '+added+' product(s) added'+(updated?', '+updated+' existing qty updated':'')+'. Save Project to keep this draft.');
+};
+
 function renderProjectPicker() {
   normalizeProjects();
   const container=document.getElementById('draftImportRows');
@@ -2924,7 +3126,7 @@ window.onPOCheckChange = function(cb) {
 
 
 // ========== DRAFT AUTO-SAVE ==========
-const DRAFT_KEY = ('jvt_po_draft_' + window.ACTIVE_COMPANY);
+const getDraftKey = () => 'jvt_po_draft_' + getCompany().id;
 const DRAFT_FIELDS = ['poNumber','poDate','paymentTerms','deliveryDate','quotationReference','deliveryLocation','vatOption','discountType','internalRemarks','manualProjectName','suppName','suppContact','suppTel','suppFax','suppAddress'];
 
 function saveDraft() {
@@ -2943,13 +3145,13 @@ function saveDraft() {
     // Save items
     draft.items = window._items ? window._items.map(i => ({ ...i })) : [];
     draft.projectIds = selectedPOProjectIds();
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    localStorage.setItem(getDraftKey(), JSON.stringify(draft));
   } catch(e) { /* silent */ }
 }
 
 function restoreDraftData() {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY);
+    const raw = localStorage.getItem(getDraftKey());
     if (!raw) return null;
     return JSON.parse(raw);
   } catch(e) { return null; }
@@ -2989,7 +3191,7 @@ function restoreDraft() {
 }
 
 function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY);
+  localStorage.removeItem(getDraftKey());
 }
 
 // Hook all PO form inputs to auto-save draft
@@ -3389,7 +3591,9 @@ function renderMaterialTabs() {
 }
 
 function setActiveMatSupplier(ci) {
+  if (!window.materials?.[ci]) return;
   activeMaterialSupplier = ci;
+  activeMaterialSubfolder = null; // All view for the newly selected supplier
   renderMaterialTabs();
   renderMaterials();
 }
@@ -3411,9 +3615,9 @@ function renderMaterials() {
   if (activeSubIdx === null || activeSubIdx >= subfolders.length) {
     activeSubIdx = null;
     // "All" — show all items + all subfolder items combined, tagged with source
-    visibleItems = (cat.items || []).map(it => ({ ...it, _src: 'root', _ci: ci }));
+    visibleItems = (cat.items || []).map((it, ii) => ({ ...it, _src: 'root', _ci: ci, _ii: ii }));
     subfolders.forEach((sf, si) => {
-      (sf.items || []).forEach(it => visibleItems.push({ ...it, _src: 'sub', _si: si, _ci: ci }));
+      (sf.items || []).forEach((it, ii) => visibleItems.push({ ...it, _src: 'sub', _si: si, _ci: ci, _ii: ii }));
     });
   } else {
     const sf = subfolders[activeSubIdx];
@@ -3443,22 +3647,15 @@ function renderMaterials() {
       const isSub = item._src === 'sub';
       const ci_ = item._ci;
       const si_ = item._si;
-      const ii_ = isSub
-        ? (activeSubIdx !== null ? rowIdx : (cat.subfolders[si_].items || []).indexOf(
-            cat.subfolders[si_].items.find((x,i) => i === (cat.subfolders[si_].items.findIndex(x2 => x2 === item)))
-          ))
-        : (cat.items || []).indexOf(item);
-      // Simpler: find real index
-      const realII = isSub
-        ? (cat.subfolders[si_].items || []).findIndex(x => x === visibleItems.find(v => v._src==='sub' && v._si===si_ && v.name===item.name && v.code===item.code))
-        : (cat.items || []).findIndex(x => x.name === item.name && x.code === item.code && x.price === item.price);
-      const delAction = isSub ? `data-action="delete-sub-material" data-ci="${ci_}" data-si="${si_}" data-ii="${rowIdx}"` : `data-action="delete-material" data-ci="${ci_}" data-ii="${rowIdx}"`;
-      const nameChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${rowIdx},'name',this.value)` : `window.updateMaterial(${ci_},${rowIdx},'name',this.value)`;
-      const unitChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${rowIdx},'unit',this.value)` : `window.updateMaterial(${ci_},${rowIdx},'unit',this.value)`;
-      const descChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${rowIdx},'desc',this.value)` : `window.updateMaterial(${ci_},${rowIdx},'desc',this.value)`;
-      const codeChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${rowIdx},'code',this.value)` : `window.updateMaterial(${ci_},${rowIdx},'code',this.value)`;
-      const priceChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${rowIdx},'price',this.value)` : `window.updateMaterial(${ci_},${rowIdx},'price',this.value)`;
-      const subLabel = isSub ? `<span style="font-size:9px;background:var(--accent2);color:#fff;padding:1px 6px;border-radius:8px;margin-left:6px;">${cat.subfolders[si_].name}</span>` : '';
+      // Use the original catalog index, never the visual row number in "All".
+      const ii_ = item._ii;
+      const delAction = isSub ? `data-action="delete-sub-material" data-ci="${ci_}" data-si="${si_}" data-ii="${ii_}"` : `data-action="delete-material" data-ci="${ci_}" data-ii="${ii_}"`;
+      const nameChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${ii_},'name',this.value)` : `window.updateMaterial(${ci_},${ii_},'name',this.value)`;
+      const unitChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${ii_},'unit',this.value)` : `window.updateMaterial(${ci_},${ii_},'unit',this.value)`;
+      const descChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${ii_},'desc',this.value)` : `window.updateMaterial(${ci_},${ii_},'desc',this.value)`;
+      const codeChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${ii_},'code',this.value)` : `window.updateMaterial(${ci_},${ii_},'code',this.value)`;
+      const priceChange = isSub ? `window.updateSubMaterial(${ci_},${si_},${ii_},'price',this.value)` : `window.updateMaterial(${ci_},${ii_},'price',this.value)`;
+      const subLabel = isSub ? `<span style="font-size:9px;background:var(--accent2);color:#fff;padding:1px 6px;border-radius:8px;margin-left:6px;">${escapeSummaryText(cat.subfolders[si_].name)}</span>` : '';
       itemsHTML += `
         <div class="material-row">
           <div class="material-row-grid">
@@ -3550,10 +3747,30 @@ function deleteCategory(ci) {
 // ========== PRODUCT PICKER ==========
 let _pickerFolderIdx = null;
 let _pickerSubfolderIdx = null;
+let _poPickerSelection = new Map();
+function poPickerKey(item) {
+  return [item.ci, item._fromSub ? item._si : 'root', item.ii].join(':');
+}
+function rememberPOPickerSelection() {
+  (window._pickerItems || []).forEach((item, idx) => {
+    const cb = document.getElementById('pcheck-' + idx);
+    if (!cb) return;
+    const key = poPickerKey(item);
+    if (!cb.checked) { _poPickerSelection.delete(key); return; }
+    const qtyEl = document.getElementById('pqty-' + idx);
+    const qty = Number(qtyEl?.value);
+    _poPickerSelection.set(key, { item: { ...item }, qty: Number.isFinite(qty) && qty > 0 ? qty : 1 });
+  });
+}
+function resetPOPickerSelection() {
+  _poPickerSelection = new Map();
+  window._pickerItems = [];
+}
 
 function openProductPicker(folderIdx) {
   const tabsEl = document.getElementById('pickerFolderTabs');
   tabsEl.innerHTML = '';
+  resetPOPickerSelection();
 
   if (!(window.materials || []).length) {
     document.getElementById('materialPickList').innerHTML =
@@ -3601,6 +3818,7 @@ function openProductPicker(folderIdx) {
 
 
 function renderPickerFolder() {
+  rememberPOPickerSelection();
   var tabsEl = document.getElementById('pickerFolderTabs');
   tabsEl.querySelectorAll('button').forEach(function(btn) {
     var active = parseInt(btn.dataset.ci) === _pickerFolderIdx;
@@ -3666,14 +3884,14 @@ function renderPickerFolder() {
     var row = document.createElement('div');
     row.id = 'picker-row-' + idx;
     row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);cursor:pointer;transition:all 0.12s;';
-    var sfBadge = item._fromSub ? ('<span style="font-size:9px;background:var(--accent2);color:#fff;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle;">' + item._sfName + '</span>') : '';
+    var sfBadge = item._fromSub ? ('<span style="font-size:9px;background:var(--accent2);color:#fff;padding:1px 6px;border-radius:8px;margin-left:6px;vertical-align:middle;">' + escapeSummaryText(item._sfName) + '</span>') : '';
     var monoStyle = "font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;";
-    var codeHtml = item.code ? ('<div style="' + monoStyle + '">' + pdfText(item.code) + '</div>') : '';
+    var codeHtml = item.code ? ('<div style="' + monoStyle + '">' + escapeSummaryText(item.code) + '</div>') : '';
     var priceStyle = "font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent2);white-space:nowrap;";
     row.innerHTML = '<input type="checkbox" id="pcheck-' + idx + '" style="width:17px;height:17px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;">'
       + '<div style="flex:1;min-width:0;">'
-      + '<div style="font-size:13.5px;font-weight:500;">' + item.name + sfBadge + '</div>'
-      + '<div style="font-size:11px;color:var(--text3);">' + (item.desc ? item.desc.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>') + ' \u00b7 ' : '') + item.unit + '</div>'
+      + '<div style="font-size:13.5px;font-weight:500;">' + escapeSummaryText(item.name) + sfBadge + '</div>'
+      + '<div style="font-size:11px;color:var(--text3);">' + (item.desc ? escapeSummaryText(item.desc).replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>') + ' \u00b7 ' : '') + escapeSummaryText(item.unit || 'pc') + '</div>'
       + codeHtml
       + '</div>'
       + '<div style="' + priceStyle + '">P ' + formatNum(item.price) + '</div>'
@@ -3692,10 +3910,17 @@ function renderPickerFolder() {
       highlightPickerRow(idx, this.checked);
       updatePickerCount();
     });
+    row.querySelector('#pqty-' + idx).addEventListener('input', updatePickerCount);
+    const existing = _poPickerSelection.get(poPickerKey(item));
+    if (existing) {
+      row.querySelector('#pcheck-' + idx).checked = true;
+      row.querySelector('#pqty-' + idx).value = existing.qty;
+      highlightPickerRow(idx, true);
+    }
     list.appendChild(row);
   });
 
-  document.getElementById('selectAllCheck').checked = false;
+  document.getElementById('selectAllCheck').checked = itemsToShow.length > 0 && itemsToShow.every(it=>_poPickerSelection.has(poPickerKey(it)));
   updatePickerCount();
 }
 
@@ -3728,64 +3953,93 @@ function toggleSelectAll(checked) {
 }
 
 function updatePickerCount() {
+  rememberPOPickerSelection();
   const items = window._pickerItems || [];
-  const count = items.filter((_, idx) => {
-    const cb = document.getElementById('pcheck-' + idx);
-    return cb && cb.checked;
-  }).length;
-  document.getElementById('pickerCount').textContent = count + ' selected';
+  const visibleSelected = items.filter(it => _poPickerSelection.has(poPickerKey(it))).length;
+  const selectAll = document.getElementById('selectAllCheck');
+  if (selectAll) {
+    selectAll.checked = !!items.length && visibleSelected === items.length;
+    selectAll.indeterminate = visibleSelected > 0 && visibleSelected < items.length;
+  }
+  document.getElementById('pickerCount').textContent = _poPickerSelection.size + ' selected';
 }
 
+function catalogItemCount(folder) {
+  return (folder?.items || []).length + (folder?.subfolders || []).reduce((sum, sf) => sum + (sf.items || []).length, 0);
+}
+function selectedSupplierFolderIndex() {
+  const name = document.getElementById('suppName')?.value || '';
+  if (!name.trim()) return -1;
+  return (window.materials || []).findIndex(folder => supplierKey(folder.category) === supplierKey(name));
+}
 function addFromMaterials() {
-  if (window.materials.length === 0 || window.materials.every(m => m.items.length === 0)) {
-    alert('Walang materials pa. Mag-add muna sa Materials tab.');
+  const available = (window.materials || []).some(catalogItemCount);
+  if (!available) { showToast('Walang materials pa. Mag-add muna sa Materials tab.'); return; }
+  const selectedName = document.getElementById('suppName')?.value.trim() || '';
+  const folderIndex = selectedSupplierFolderIndex();
+  if (selectedName && folderIndex < 0) {
+    showToast('Walang matching catalog folder para sa '+selectedName+'. Add the supplier folder sa Materials tab, o manual + Add Row.');
     return;
   }
-  openProductPicker(null);
+  if (folderIndex >= 0 && !catalogItemCount(window.materials[folderIndex])) {
+    showToast('Wala pang saved materials si '+selectedName+'. Maaari kang mag-add manually.');
+    return;
+  }
+  openProductPicker(folderIndex >= 0 ? folderIndex : null);
 }
 
 function addSelectedProducts() {
-  const items = window._pickerItems || [];
-  const selected = [];
-  items.forEach((item, idx) => {
-    const cb = document.getElementById('pcheck-' + idx);
-    if (cb && cb.checked) {
-      const qtyInput = document.getElementById('pqty-' + idx);
-      const qty = parseFloat(qtyInput ? qtyInput.value : 1) || 1;
-      const price = parseFloat(item.price) || 0;
-      selected.push({ item, qty, price });
-    }
-  });
-
-  if (selected.length === 0) {
-    showToast('Walang napili. Mag-check ng kahit isang item.');
+  rememberPOPickerSelection();
+  const selected = Array.from(_poPickerSelection.values()).map(({item, qty}) => ({
+    item, qty, price: Number(item.price) || 0,
+    supplierName: window.materials?.[item.ci]?.category || ''
+  }));
+  if (!selected.length) { showToast('Walang napili. Mag-check ng kahit isang item.'); return; }
+  // A supplier PO must not accidentally contain products from different vendors.
+  const names = [...new Set(selected.map(x => supplierKey(x.supplierName)))];
+  if (names.length !== 1) {
+    showToast('⚠️ Pumili ng products mula sa iisang supplier lamang para sa isang PO.');
     return;
   }
-
-  // Remove trailing blank rows first
-  window._items = window._items.filter(i => i.desc && i.desc.trim() !== '');
-
-  selected.forEach(({ item, qty, price }) => {
+  const supplierName = document.getElementById('suppName')?.value.trim() || '';
+  if (supplierName && supplierKey(supplierName) !== names[0]) {
+    showToast('⚠️ Hindi tumutugma ang product supplier sa supplier ng PO.');
+    return;
+  }
+  // If selected through the catalog before choosing a supplier, fill supplier details.
+  if (!supplierName) {
+    const chosenName = selected[0].supplierName;
+    const savedIdx = (window.suppliers || []).findIndex(s => supplierKey(s.name) === supplierKey(chosenName));
+    if (savedIdx >= 0) {
+      const s = window.suppliers[savedIdx];
+      ['Name','Contact','Tel','Fax','Address'].forEach((field) => {
+        const key = field.toLowerCase();
+        const el = document.getElementById('supp' + field);
+        if (el) el.value = s[key] || '';
+      });
+      document.getElementById('supplierSelect').value = String(savedIdx);
+    } else document.getElementById('suppName').value = chosenName;
+    updateSupplierDraftHint();
+  }
+  // Preserve typed PO entries before modifying/re-rendering the item table.
+  syncItemsFromDOM();
+  window._items = (window._items || []).filter(i => String(i.desc || '').trim() !== '');
+  selected.forEach(({ item, qty, price, supplierName }) => {
     window._items.push({
       no: window._items.length + 1,
-      desc: item.name || '',
-      itemDesc: item.desc || '',
-      code: item.code || '',
-      qty: qty,
-      unit: item.unit || 'pc',
-      price: price,
-      amount: qty * price
+      desc: item.name || '', itemDesc: item.desc || '', code: item.code || '',
+      qty, unit: item.unit || 'pc', price, amount: qty * price,
+      sourceSupplierName: supplierName
     });
   });
-
-  // Always have one blank row at end
   window._items.push({ no: window._items.length + 1, desc: '', code: '', qty: 1, unit: 'pc', price: '', amount: 0 });
   window._items.forEach((it, i) => { it.no = i + 1; });
-
   renderItems();
+  saveDraft();
+  resetPOPickerSelection();
   document.getElementById('materialPickModal').classList.remove('open');
   switchTabDirect('po');
-  showToast(selected.length + ' item(s) added to PO');
+  showToast('✅ ' + selected.length + ' item(s) added to Supplier PO');
 }
 
 // Legacy
@@ -3819,14 +4073,18 @@ async function savePO() {
   if (existIdx >= 0) {
     if (!confirm('A PO with this number already exists. Overwrite?')) return;
     po.status = window.savedPOs[existIdx].status || 'saved';
-    window.savedPOs[existIdx] = po;
-  } else {
-    window.savedPOs.push(po);
   }
-  // Save to localStorage as backup
+  // Only consider a PO saved after the Firebase write succeeds. A failed write must
+  // not silently create an exportable entry in PO Summary.
+  const savedToCloud = await window.savePOToCloud(po);
+  if (savedToCloud === false) {
+    showToast('⚠️ PO not saved. Please check connection and try Save PO again.');
+    return;
+  }
+  if (existIdx >= 0) window.savedPOs[existIdx] = po;
+  else window.savedPOs.push(po);
+  // Save to localStorage as backup AFTER the successful write.
   localStorage.setItem(getCompany().localKeyPOs, JSON.stringify(window.savedPOs));
-  // Save to Firebase
-  await window.savePOToCloud(po);
   // Keep existing project PO links as references. Shared POs never become duplicate PO records.
   normalizeProjects();
   let changedProjects=false;
@@ -3844,7 +4102,7 @@ async function savePO() {
   clearDraft(); const poNumParts = po.poNumber ? po.poNumber.split('-') : [];
   const poNum = parseInt(poNumParts[poNumParts.length - 1]);
   if (!isNaN(poNum)) localStorage.setItem('po_last_num_' + getCompany().id, poNum);
-  showToast('✅ PO saved!');
+  showToast('✅ PO saved! PDF is now available in PO Summary.');
   renderSummary();
   renderProjects();renderSuppliers();updateSupplierDraftHint();
   renderPOProjectChecklist((po.projectIds || []));
@@ -4075,6 +4333,7 @@ function renderSummary() {
         <td><div class="summary-actions">
           <button class="btn btn-secondary btn-sm" data-action="edit-po" data-idx="${realIdx}">✏️ Edit</button>
           <button class="btn btn-sm btn-outline" data-action="preview-po" data-idx="${realIdx}">👁 View</button>
+          <button class="btn btn-primary btn-sm" data-action="pdf-saved-po" data-idx="${realIdx}" title="Export this saved PO as PDF">📄 PDF</button>
           <button class="btn btn-sm" style="color:var(--accent);border:1px solid var(--accent);background:transparent;" data-action="delete-po" data-idx="${realIdx}">🗑</button>
         </div></td>
       </tr>`;
@@ -4279,11 +4538,50 @@ window.permanentlyDeletePO = function(trashId) {
   showToast('🗑 PO permanently deleted');
 };
 
+// A preview is either a form-only draft or a specific persisted Summary record.
+// Never reuse a draft preview as a source for supplier-facing PDFs.
+function isPOFromCurrentCompany(po) {
+  return !!po && (!po.company || po.company === getCompany().id);
+}
+function savedPOByIndex(i) {
+  const po = (window.savedPOs || [])[i];
+  return isPOFromCurrentCompany(po) ? po : null;
+}
+function setPOPreviewMode(kind) {
+  const saved = kind === 'saved';
+  const actions = document.getElementById('savedPOExportActions');
+  const note = document.getElementById('previewStatusNote');
+  const title = document.getElementById('poPreviewModalTitle');
+  if (actions) actions.style.display = saved ? 'flex' : 'none';
+  if (title) title.textContent = saved ? 'Saved Purchase Order — Preview' : 'Purchase Order — Preview Only';
+  if (note) {
+    note.style.background = saved ? '#f0fdf4' : '#fffbeb';
+    note.style.borderColor = saved ? '#bbf7d0' : '#fcd34d';
+    note.style.color = saved ? '#166534' : '#92400e';
+    note.textContent = saved
+      ? 'Saved PO from PO Summary. You may print or save this record as PDF.'
+      : 'Preview only — no PDF/Print from the PO form. Click Save PO first, then go to PO Summary to export the saved record.';
+  }
+}
 function previewSavedPO(i) {
-  const po = window.savedPOs[i];
+  const po = savedPOByIndex(i);
+  if (!po) { showToast('⚠️ Saved PO not found. Refresh PO Summary.'); return; }
+  window._poPreviewContext = { kind: 'saved', company: getCompany().id, poNumber: po.poNumber };
   window._currentPreviewPO = po;
+  setPOPreviewMode('saved');
   document.getElementById('previewContent').innerHTML = buildPreviewHTML(po);
   document.getElementById('previewModal').classList.add('open');
+}
+function getSavedPOForPreviewExport() {
+  const ctx = window._poPreviewContext;
+  if (!ctx || ctx.kind !== 'saved' || ctx.company !== getCompany().id) return null;
+  return (window.savedPOs || []).find(po =>
+    isPOFromCurrentCompany(po) && po.poNumber === ctx.poNumber) || null;
+}
+function exportSavedPO(i) {
+  const po = savedPOByIndex(i);
+  if (!po) { showToast('⚠️ PO must be saved in PO Summary before exporting PDF.'); return; }
+  openPOPrintView(po);
 }
 
 // ========== PREVIEW ==========
@@ -4311,12 +4609,19 @@ function syncItemsFromDOM() {
 function showPreview() {
   syncItemsFromDOM(); // ensure all typed values are captured before preview
   const po = getPOData();
+  window._poPreviewContext = { kind: 'form' }; // form preview is NEVER printable
   window._currentPreviewPO = po;
+  setPOPreviewMode('form');
   document.getElementById('previewContent').innerHTML = buildPreviewHTML(po);
   document.getElementById('previewModal').classList.add('open');
 }
 
-function closePreview() { document.getElementById('previewModal').classList.remove('open'); }
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('open');
+  window._poPreviewContext = null;
+  window._currentPreviewPO = null;
+  setPOPreviewMode('form');
+}
 
 function getPOFilename(po) {
   const supplier = (po.supplier?.name || 'Supplier').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 30);
@@ -4325,8 +4630,12 @@ function getPOFilename(po) {
 }
 
 // Supplier-facing print view: preserve the official PO layout while handling A4 pagination.
-function openPOPrintView() {
-  const po = window._currentPreviewPO || {};
+function openPOPrintView(po) {
+  // This is also checked at the print function itself, not just by hiding buttons.
+  if (!po || !(window.savedPOs || []).includes(po) || !isPOFromCurrentCompany(po)) {
+    showToast('🔒 Save this PO first, then export PDF from PO Summary.');
+    return;
+  }
   const filename = getPOFilename(po);
   const content = buildPreviewHTML(po);
   const win = window.open('', '_blank', 'width=980,height=760');
@@ -4359,8 +4668,16 @@ function openPOPrintView() {
       .then(() => win.print());
   };
 }
-function printPO() { openPOPrintView(); }
-function exportPDF() { openPOPrintView(); }
+function printPO() {
+  const po = getSavedPOForPreviewExport();
+  if (!po) { showToast('🔒 Save this PO first, then print from PO Summary.'); return; }
+  openPOPrintView(po);
+}
+function exportPDF() {
+  const po = getSavedPOForPreviewExport();
+  if (!po) { showToast('🔒 Save this PO first, then export PDF from PO Summary.'); return; }
+  openPOPrintView(po);
+}
 
 function buildPreviewHTML(po) {
   const subtotal = po.subtotal || (po.items || []).reduce((s, i) => s + (i.amount || 0), 0);
@@ -4565,6 +4882,7 @@ function setupEventDelegation() {
       // PO Summary
       case 'edit-po': loadPOEdit(idx); break;
       case 'preview-po': previewSavedPO(idx); break;
+      case 'pdf-saved-po': exportSavedPO(idx); break;
       case 'delete-po': deletePO(idx); break;
       // Suppliers
       case 'supplier-to-po': window.startPOFromSupplier(idx); break;
@@ -4664,6 +4982,7 @@ window.loadPOEdit = loadPOEdit;
 window.switchTabDirect = switchTabDirect;
 window.deletePO = deletePO;
 window.previewSavedPO = previewSavedPO;
+window.exportSavedPO = exportSavedPO;
 window.showPreview = showPreview;
 window.closePreview = closePreview;
 window.getPOFilename = getPOFilename;
@@ -4693,6 +5012,7 @@ window.loadPOEdit = loadPOEdit;
 window.switchTabDirect = switchTabDirect;
 window.deletePO = deletePO;
 window.previewSavedPO = previewSavedPO;
+window.exportSavedPO = exportSavedPO;
 window.showPreview = showPreview;
 window.closePreview = closePreview;
 window.getPOFilename = getPOFilename;
@@ -4718,6 +5038,7 @@ window.loadPOEdit = loadPOEdit;
 window.switchTabDirect = switchTabDirect;
 window.deletePO = deletePO;
 window.previewSavedPO = previewSavedPO;
+window.exportSavedPO = exportSavedPO;
 window.showPreview = showPreview;
 window.closePreview = closePreview;
 window.getPOFilename = getPOFilename;
