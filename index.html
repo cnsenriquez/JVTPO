@@ -421,14 +421,14 @@
     <div class="card-title">PO Details</div>
     <div class="form-grid three">
       <div class="form-group">
-        <label>PO Number</label>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="poNumber" list="poNumberList" placeholder="⏳ No Entry PO" autocomplete="off" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent);min-width:200px;">
-          <datalist id="poNumberList">
-            <option value="">⏳ No Entry PO</option>
-          </datalist>
+        <label for="poNumber">Supplier PO Number <span style="font-size:10px;color:var(--text3);font-weight:400;">(optional)</span></label>
+        <input type="text" id="poNumber" placeholder="Leave blank if no PO # yet" autocomplete="off" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--accent);width:100%;min-width:0;">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:6px;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="window.useSuggestedPONumber()" title="Use next suggested PO number">↳ Use Next Suggested #</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="window.clearPONumber()" title="Keep the PO number blank">Leave Blank</button>
         </div>
-        <div class="po-number-inline-hint">Latest saved: <strong id="formLatestPONumber">—</strong> · Next suggested: <strong id="formNextPONumber">—</strong></div>
+        <div class="po-number-inline-hint">Latest saved: <strong id="formLatestPONumber">—</strong> · Suggested: <strong id="formNextPONumber">—</strong></div>
+        <div id="poNumberState" style="font-size:11px;color:#9a6700;margin-top:6px;">⏳ No Entry PO — your record can still be saved.</div>
       </div>
       <div class="form-group">
         <label>Date</label>
@@ -1288,24 +1288,26 @@ function getCompany() {
   return window.COMPANIES[window.ACTIVE_COMPANY];
 }
 
+// Only the company's standard YYYY-MMM-NNN sequence contributes to the next number.
+// Old NO-PO-timestamp records and invalid cached values must NEVER become PO numbers.
+function numericPOSequence(value) {
+  const match = String(value || '').trim().match(/^\d{4}-(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)-(\d{1,6})$/i);
+  return match ? Number(match[1]) : null;
+}
 function generateNextPONumber() {
   const co = getCompany();
   const now = new Date();
   const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   const prefix = now.getFullYear() + '-' + months[now.getMonth()] + '-';
-  // Seed from known last numbers: JVT=083, LITRAD=263
   const SEED = { jvt: 83, litrad: 263 };
   let maxNum = SEED[co.id] || 0;
   (window.savedPOs || []).filter(po => !po.company || po.company === co.id).forEach(po => {
-    if (po.poNumber && !po.isNoPO) {
-      const parts = po.poNumber.split('-');
-      const n = parseInt(parts[parts.length - 1]);
-      if (!isNaN(n) && n > maxNum) maxNum = n;
-    }
+    if (po.isNoPO) return;
+    const n = numericPOSequence(po.poNumber);
+    if (n !== null && n > maxNum) maxNum = n;
   });
-  const storedKey = 'po_last_num_' + co.id;
-  const stored = parseInt(localStorage.getItem(storedKey) || '0');
-  if (stored > maxNum) maxNum = stored;
+  const stored = Number(localStorage.getItem('po_last_num_' + co.id));
+  if (Number.isSafeInteger(stored) && stored > 0 && stored <= 999999 && stored > maxNum) maxNum = stored;
   return prefix + String(maxNum + 1).padStart(3, '0');
 }
 window.generateNextPONumber = generateNextPONumber;
@@ -1322,6 +1324,7 @@ function switchCompany(id) {
   window.savedProjects = [];
   window.projects = [];
   window.currentEditPO = null;
+  if (window._selectedPOs) window._selectedPOs.clear();
   const manu=document.getElementById('manualProjectName');if(manu)manu.value='';
   renderPOProjectChecklist([]);
   window._draftPaused = true;
@@ -1560,6 +1563,51 @@ window.savedPOs = [];
 window.editingSupplierIdx = -1;
 window.currentEditPO = null;
 
+// Stable Firestore document identity is independent from the optional, human-visible PO number.
+// Backward compatible: existing Firestore documents keep their original document IDs.
+function newPORecordId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return 'po_' + crypto.randomUUID();
+  return 'po_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 12);
+}
+function normalizeSavedPO(po, firestoreDocId) {
+  if (!po || typeof po !== 'object') return po;
+  const raw = String(po.poNumber || '').trim();
+  const isLegacyPending = /^NO-PO-\d{8,}$/i.test(raw);
+  if (isLegacyPending && !po._legacyPoNumber) po._legacyPoNumber = raw;
+  // The original doc ID is authoritative for existing saved POs.
+  po._docId = firestoreDocId || po._docId || (raw ? raw.replace(/[^a-zA-Z0-9\-]/g, '_') : newPORecordId());
+  po.isNoPO = isLegacyPending || !raw || !!(po.isNoPO && !raw);
+  po.poNumber = po.isNoPO ? '' : raw;
+  return po;
+}
+function poRecordKey(po) { return po?._docId || po?._legacyPoNumber || po?.poNumber || ''; }
+function persistPOCache() {
+  localStorage.setItem(getCompany().localKeyPOs, JSON.stringify(window.savedPOs || []));
+}
+function refreshPOFormNumberState() {
+  const inp = document.getElementById('poNumber');
+  const hint = document.getElementById('poNumberState');
+  if (!hint || !inp) return;
+  const filled = !!inp.value.trim();
+  hint.textContent = filled ? '✓ This number will be saved with your PO.' : '⏳ No Entry PO — you can save now and assign a number later.';
+  hint.style.color = filled ? '#166534' : '#9a6700';
+}
+window.useSuggestedPONumber = function() {
+  const inp = document.getElementById('poNumber');
+  if (!inp) return;
+  if (inp.value.trim() && !confirm('Replace the current PO number with the next suggested number?')) return;
+  inp.value = generateNextPONumber();
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  refreshPOFormNumberState();
+};
+window.clearPONumber = function() {
+  const inp = document.getElementById('poNumber');
+  if (!inp) return;
+  inp.value = '';
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  refreshPOFormNumberState();
+};
+
 // ========== FIREBASE HELPERS ==========
 window.saveSuppliers = async function() {
   try {
@@ -1576,17 +1624,34 @@ window.saveMaterials = async function() {
 
 window.savePOToCloud = async function(po) {
   try {
-    const id = po.poNumber.replace(/[^a-zA-Z0-9\-]/g,'_');
-    await setDoc(doc(db, getCompany().poCollection || 'purchase_orders', id), po);
+    const company = getCompany();
+    po._docId = po._docId || newPORecordId();
+    // Prevent overwriting another saved PO when the UI has stale data.
+    // This is a pre-save check, not a cross-user atomic number reservation.
+    if (!po.isNoPO && po.poNumber) {
+      const snapshot = await getDocs(collection(db, company.poCollection || 'purchase_orders'));
+      const duplicate = snapshot.docs.find(d =>
+        d.id !== po._docId &&
+        !d.data().isNoPO &&
+        String(d.data().poNumber || '').trim().toUpperCase() === po.poNumber.toUpperCase());
+      if (duplicate) {
+        showToast('⚠️ PO number already used. Please refresh and choose another number.');
+        return false;
+      }
+    }
+    if (getCompany().id !== company.id) return false;
+    await setDoc(doc(db, company.poCollection || 'purchase_orders', po._docId), po);
     return true;
   } catch(e) { console.error('savePO error:', e); showToast('⚠️ PO not saved to Firebase: ' + e.message); return false; }
 };
 
-window.deletePOFromCloud = async function(poNumber) {
+window.deletePOFromCloud = async function(po) {
   try {
-    const id = poNumber.replace(/[^a-zA-Z0-9\-]/g,'_');
+    const id = poRecordKey(po);
+    if (!id) throw new Error('Missing PO record ID');
     await deleteDoc(doc(db, getCompany().poCollection || 'purchase_orders', id));
-  } catch(e) { console.error('deletePO error:', e); }
+    return true;
+  } catch(e) { console.error('deletePO error:', e); showToast('⚠️ Could not delete PO from Firebase.'); return false; }
 };
 
 // The PO number reference uses the entire selected company's saved records,
@@ -1594,13 +1659,9 @@ window.deletePOFromCloud = async function(poNumber) {
 function getLatestSavedNumberedPO() {
   const companyID = getCompany().id;
   return (window.savedPOs || [])
-    .filter(po => (!po.company || po.company === companyID) && !po.isNoPO && po.poNumber && !String(po.poNumber).startsWith('NO-PO-'))
-    .map(po => {
-      const parts = String(po.poNumber).split('-');
-      const sequence = Number.parseInt(parts[parts.length - 1], 10);
-      return { po, sequence: Number.isFinite(sequence) ? sequence : -1 };
-    })
-    .sort((a, b) => b.sequence - a.sequence ||
+    .filter(po => (!po.company || po.company === companyID) && !po.isNoPO && numericPOSequence(po.poNumber) !== null)
+    .map(po => ({ po, sequence: numericPOSequence(po.poNumber) }))
+    .sort((a,b) => b.sequence - a.sequence ||
       String(b.po.savedAt || b.po.date || '').localeCompare(String(a.po.savedAt || a.po.date || '')))[0]?.po || null;
 }
 function updatePONumberReference() {
@@ -1625,26 +1686,12 @@ window.updatePONumberReference = updatePONumberReference;
 // ========== PO NUMBER DROPDOWN ==========
 function populatePONumberDropdown(keepValue) {
   const inp = document.getElementById('poNumber');
-  const dl = document.getElementById('poNumberList');
   if (!inp) return;
-  const nextPO = generateNextPONumber();
   updatePONumberReference();
   const current = keepValue !== undefined ? keepValue : inp.value;
-  // Rebuild datalist
-  if (dl) {
-    dl.innerHTML = '';
-    const makeOpt = (val, lbl) => { const o = document.createElement('option'); o.value = val; if(lbl) o.label = lbl; dl.appendChild(o); };
-    makeOpt('', '⏳ No Entry PO');
-    makeOpt(nextPO);
-    if (current && current !== '' && current !== nextPO) makeOpt(current);
-  }
-  // Set input value
-  if (current && current !== '') {
-    inp.value = current;
-  } else {
-    inp.value = nextPO; // default to next series number
-    inp.placeholder = '⏳ No Entry PO';
-  }
+  inp.value = /^NO-PO-\d{8,}$/i.test(String(current || '')) ? '' : String(current || '');
+  inp.placeholder = 'Leave blank if no PO # yet';
+  refreshPOFormNumberState();
 }
 // ========== LOAD ALL DATA FROM FIRESTORE ==========
 async function loadAllData() {
@@ -1660,7 +1707,7 @@ async function loadAllData() {
     // Load POs
     const posSnap = await getDocs(collection(db, getCompany().poCollection || 'purchase_orders'));
     window.savedPOs = [];
-    posSnap.forEach(d => window.savedPOs.push(d.data()));
+    posSnap.forEach(d => window.savedPOs.push(normalizeSavedPO(d.data(), d.id)));
     window.savedPOs.sort((a,b) => (a.poNumber || '').localeCompare(b.poNumber || ''));
 
     // Load Projects
@@ -1758,7 +1805,7 @@ async function loadAllData() {
     bindDraftListeners();
     showLoadingOverlay(false);
     if (draftData) showToast('📝 Draft restored');
-    populatePONumberDropdown('');
+    populatePONumberDropdown(draftData?.poNumber || '');
     showToast('✅ Connected to Firebase');
   } catch(e) {
     showLoadingOverlay(false);
@@ -1767,7 +1814,7 @@ async function loadAllData() {
     // Fallback to localStorage
     window.suppliers = JSON.parse(localStorage.getItem(getCompany().localKeySuppliers) || '[]');
     window.materials = JSON.parse(localStorage.getItem(getCompany().localKeyMaterials) || '[]');
-    window.savedPOs = JSON.parse(localStorage.getItem(getCompany().localKeyPOs) || '[]');
+    window.savedPOs = JSON.parse(localStorage.getItem(getCompany().localKeyPOs) || '[]').map(po => normalizeSavedPO(po));
     window.projects = JSON.parse(localStorage.getItem(getCompany().localKeyPOs.replace('_pos','_projects')) || '[]');
     window.trashedPOs = JSON.parse(localStorage.getItem(getCompany().localKeyTrash) || '[]');
     window._draftPaused = true;
@@ -1794,15 +1841,15 @@ window.refreshPOsFromCloud = async function() {
   const company = getCompany();
   const poInput = document.getElementById('poNumber');
   const currentNumber = poInput?.value || '';
-  const hadSuggestedNumber = currentNumber === generateNextPONumber() && !window.currentEditPO;
+  // The field is deliberately never auto-filled or changed during cloud refresh.
   try {
     const snapshot = await getDocs(collection(db, company.poCollection || 'purchase_orders'));
     if (getCompany().id !== company.id) return; // Company changed while request was in flight.
     const fresh = [];
-    snapshot.forEach(doc => fresh.push(doc.data()));
+    snapshot.forEach(d => fresh.push(normalizeSavedPO(d.data(), d.id)));
     window.savedPOs = fresh.sort((a,b) => String(a.poNumber || '').localeCompare(String(b.poNumber || '')));
     localStorage.setItem(company.localKeyPOs, JSON.stringify(window.savedPOs));
-    populatePONumberDropdown(hadSuggestedNumber ? '' : currentNumber);
+    populatePONumberDropdown(currentNumber);
     renderSummary();
     showToast('✅ Latest PO numbers synced from Firebase');
   } catch (error) {
@@ -2211,6 +2258,7 @@ function normalizeProjects() {
   (window.projects || []).forEach((project,i) => {
     if (!project.id) project.id = stableProjectId(project,i);
     if (!Array.isArray(project.poNumbers)) project.poNumbers = [];
+    if (!Array.isArray(project.poRecordIds)) project.poRecordIds = [];
     if (!Array.isArray(project.materialDraft)) project.materialDraft = [];
     project.materialDraft.forEach((item,k) => { if (!item.id) item.id = project.id + '_material_' + k; });
   });
@@ -2219,11 +2267,17 @@ function newFlowId() { return 'id_' + Date.now().toString(36) + '_' + Math.rando
 function relatedProjects(po) {
   normalizeProjects();
   return (window.projects || []).filter(project =>
-    (po.projectIds || []).includes(project.id) || (project.poNumbers || []).includes(po.poNumber));
+    (po.projectIds || []).includes(project.id) ||
+    (project.poRecordIds || []).includes(poRecordKey(po)) ||
+    (!!po.poNumber && (project.poNumbers || []).includes(po.poNumber)) ||
+    (!!po._legacyPoNumber && (project.poNumbers || []).includes(po._legacyPoNumber)));
 }
 function linkedProjectPOs(project) {
   return (window.savedPOs || []).filter(po =>
-    (project.poNumbers || []).includes(po.poNumber) || (po.projectIds || []).includes(project.id));
+    (project.poRecordIds || []).includes(poRecordKey(po)) ||
+    (!!po.poNumber && (project.poNumbers || []).includes(po.poNumber)) ||
+    (!!po._legacyPoNumber && (project.poNumbers || []).includes(po._legacyPoNumber)) ||
+    (po.projectIds || []).includes(project.id));
 }
 function orderedDraftQty(projectId, draftId) {
   return (window.savedPOs || []).reduce((sum,po) => sum + (po.items || []).reduce((n,item) =>
@@ -2990,7 +3044,7 @@ function editProject(idx) {
   document.getElementById('projLocation').value = proj.location || '';
   updateProjectSupplierNames();
   fillProjectDraftRows(proj.materialDraft || []);
-  renderProjPOCheckboxes(linkedProjectPOs(proj).map(p=>p.poNumber));
+  renderProjPOCheckboxes(linkedProjectPOs(proj).map(p=>poRecordKey(p)));
   renderOtherExpenseRows(window._editingExpenses);
   document.getElementById('projectModal').classList.add('open');
 }
@@ -3003,11 +3057,12 @@ function renderProjPOCheckboxes(selected) {
     return;
   }
   container.innerHTML = pos.map(po => {
-    const checked = selected.includes(po.poNumber) ? 'checked' : '';
+    const checked = selected.includes(poRecordKey(po)) ? 'checked' : '';
+    const label = po.isNoPO ? '⏳ No Entry PO' : (po.poNumber || '—');
     return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px;border-radius:6px;font-size:12px;">
-      <input type="checkbox" value="${po.poNumber}" ${checked} style="width:15px;height:15px;">
-      <span style="font-weight:600;color:var(--accent);">${po.poNumber}</span>
-      <span style="color:var(--text2);">${po.supplier?.name || ''}</span>
+      <input type="checkbox" value="${escapeSummaryText(poRecordKey(po))}" ${checked} style="width:15px;height:15px;">
+      <span style="font-weight:600;color:var(--accent);">${escapeSummaryText(label)}</span>
+      <span style="color:var(--text2);">${escapeSummaryText(po.supplier?.name || '')}</span>
       <span style="margin-left:auto;font-family:monospace;font-size:11px;">₱ ${formatNum(po.total)}</span>
     </label>`;
   }).join('');
@@ -3022,7 +3077,9 @@ async function saveProject() {
   if (!name) { showToast('⚠️ Enter a project name'); return; }
   const notes = document.getElementById('projNotes').value.trim();
   const checkboxes = document.querySelectorAll('#projPOCheckboxes input[type=checkbox]:checked');
-  const poNumbers = Array.from(checkboxes).map(cb => cb.value);
+  const poRecordIds = Array.from(checkboxes).map(cb => cb.value);
+  const poNumbers = (window.savedPOs || []).filter(po =>
+    poRecordIds.includes(poRecordKey(po)) && !!po.poNumber).map(po => po.poNumber);
 
   const otherExpenses = getOtherExpenses();
   const previous = _editingProjectIdx !== null ? window.projects[_editingProjectIdx] : null;
@@ -3030,15 +3087,17 @@ async function saveProject() {
     clientPONumber:document.getElementById('projClientPO').value.trim(),
     description:document.getElementById('projDescription').value.trim(),
     location:document.getElementById('projLocation').value.trim(),
-    materialDraft:collectProjectDraftRows(), poNumbers, otherExpenses, updatedAt:new Date().toISOString() };
+    materialDraft:collectProjectDraftRows(), poNumbers, poRecordIds, otherExpenses, updatedAt:new Date().toISOString() };
   if (_editingProjectIdx !== null) window.projects[_editingProjectIdx] = proj;
   else { proj.createdAt=new Date().toISOString(); window.projects.unshift(proj); setProjectDisplayOrder(); }
   // Keep PO-side links and Project-side links in sync. Do not modify PO numbers or amounts.
   const changedPOs=[];
   (window.savedPOs || []).forEach(po=>{
     const ids=new Set(po.projectIds || []);
-    const wasLinked=ids.has(proj.id) || (previous?.poNumbers || []).includes(po.poNumber);
-    const shouldLink=poNumbers.includes(po.poNumber);
+    const wasLinked = ids.has(proj.id) ||
+      (previous?.poRecordIds || []).includes(poRecordKey(po)) ||
+      (!!po.poNumber && (previous?.poNumbers || []).includes(po.poNumber));
+    const shouldLink=poRecordIds.includes(poRecordKey(po));
     if(wasLinked !== shouldLink || (shouldLink && !ids.has(proj.id))){
       if(shouldLink) ids.add(proj.id); else ids.delete(proj.id);
       po.projectIds=[...ids]; changedPOs.push(po);
@@ -3104,14 +3163,14 @@ window.toggleSelectAllPOs = function(checked) {
   const checkboxes = document.querySelectorAll('.po-row-check');
   checkboxes.forEach(cb => {
     cb.checked = checked;
-    if (checked) window._selectedPOs.add(cb.dataset.ponum);
-    else window._selectedPOs.delete(cb.dataset.ponum);
+    if (checked) window._selectedPOs.add(cb.dataset.poid);
+    else window._selectedPOs.delete(cb.dataset.poid);
   });
 };
 
 window.onPOCheckChange = function(cb) {
-  if (cb.checked) window._selectedPOs.add(cb.dataset.ponum);
-  else window._selectedPOs.delete(cb.dataset.ponum);
+  if (cb.checked) window._selectedPOs.add(cb.dataset.poid);
+  else window._selectedPOs.delete(cb.dataset.poid);
   // Update select-all checkbox state
   const all = document.querySelectorAll('.po-row-check');
   const checked = document.querySelectorAll('.po-row-check:checked');
@@ -3160,6 +3219,7 @@ function restoreDraftData() {
 function applyDraft(draft) {
   if (!draft) {
     // No draft — just render blank items
+    refreshPOFormNumberState();
     renderItems();
     calcTotal();
     return;
@@ -3167,7 +3227,7 @@ function applyDraft(draft) {
   try {
     DRAFT_FIELDS.forEach(id => {
       const el = document.getElementById(id);
-      if (el && draft[id] !== undefined) el.value = draft[id];
+      if (el && draft[id] !== undefined) el.value = (id === 'poNumber' && /^NO-PO-\d{8,}$/i.test(String(draft[id]))) ? '' : draft[id];
     });
     if (draft.discountValue !== undefined) {
       const dv = document.getElementById('discountValue');
@@ -3180,6 +3240,7 @@ function applyDraft(draft) {
     renderPOProjectChecklist(draft.projectIds || []);
     renderItems();
     calcTotal();
+    refreshPOFormNumberState();
   } catch(e) { console.error('applyDraft error:', e); }
 }
 
@@ -4051,61 +4112,77 @@ function pickMaterial(ci, ii) {
 
 // ========== SAVE PO ==========
 async function savePO() {
-  syncItemsFromDOM(); // ensure all typed values are captured before saving
+  if (window._poSaving) return; // Prevent double-click duplicate records.
+  syncItemsFromDOM();
   const po = getPOData();
+  po.poNumber = String(po.poNumber || '').trim();
+  po.isNoPO = !po.poNumber;
   const mismatched=(po.items||[]).filter(it=>it.sourceSupplierName && supplierKey(it.sourceSupplierName)!==supplierKey(po.supplier?.name));
-  if(mismatched.length){
+  if (mismatched.length){
     showToast('⚠️ Supplier mismatch: '+mismatched[0].desc+' is assigned to '+mismatched[0].sourceSupplierName+'. Please select the correct supplier.');
     return;
   }
-  // Allow saving without PO number as a pending NO-PO ENTRY
-  if (!po.poNumber) {
-    po.poNumber = 'NO-PO-' + Date.now();
-    po.isNoPO = true;
+  const previous = window.currentEditPO || null;
+  po._docId = previous?._docId || newPORecordId();
+  if (previous?._legacyPoNumber) po._legacyPoNumber = previous._legacyPoNumber;
+  if (previous?.savedAt) po.createdAt = previous.createdAt || previous.savedAt;
+  const existingIndex = window.savedPOs.findIndex(p => poRecordKey(p) === po._docId);
+  const reused = po.poNumber && window.savedPOs.find(p =>
+    poRecordKey(p) !== po._docId && !p.isNoPO &&
+    String(p.poNumber || '').trim().toUpperCase() === po.poNumber.toUpperCase());
+  if (reused) { showToast('⚠️ Duplicate PO number. Edit that record or use a different number.'); return; }
+  if (previous && existingIndex < 0) {
+    showToast('⚠️ Edited PO not found in saved records. Refresh before saving.'); return;
   }
-  // If this was previously a NO-PO entry being updated with a real PO number,
-  // find it by its old timestamp key or by the new PO number
-  let existIdx = window.savedPOs.findIndex(p => p.poNumber === po.poNumber);
-  if (existIdx < 0 && window.currentEditPO?.isNoPO) {
-    existIdx = window.savedPOs.findIndex(p => p.poNumber === window.currentEditPO.poNumber);
-    if (existIdx >= 0) po.isNoPO = false; // now has a real PO number
+  po.status = previous?.status || 'saved';
+  const saveBtn = document.querySelector('#tab-po .actions-row .btn-primary');
+  window._poSaving = true;
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+  try {
+    const savedToCloud = await window.savePOToCloud(po);
+    if (savedToCloud !== true) { showToast('⚠️ PO not saved. Check connection / number and try again.'); return; }
+    if (existingIndex >= 0) window.savedPOs[existingIndex] = po;
+    else window.savedPOs.unshift(po);
+    persistPOCache();
+    normalizeProjects();
+    let changedProjects = false;
+    (window.projects || []).forEach(project => {
+      const ids = (po.projectIds || []);
+      if (!Array.isArray(project.poRecordIds)) project.poRecordIds = [];
+      const hasRecord = project.poRecordIds.includes(po._docId);
+      const linked = ids.includes(project.id);
+      if (linked && !hasRecord) { project.poRecordIds.push(po._docId); changedProjects = true; }
+      if (!linked && hasRecord) { project.poRecordIds = project.poRecordIds.filter(id => id !== po._docId); changedProjects = true; }
+      const wasLinked = (project.poNumbers || []).includes(previous?.poNumber) ||
+        (!!previous?._legacyPoNumber && (project.poNumbers || []).includes(previous._legacyPoNumber));
+      if (previous?.poNumber && previous.poNumber !== po.poNumber && wasLinked) {
+        project.poNumbers = project.poNumbers.filter(v => v !== previous.poNumber);
+        changedProjects = true;
+      }
+      if (previous?._legacyPoNumber && wasLinked) {
+        project.poNumbers = project.poNumbers.filter(v => v !== previous._legacyPoNumber);
+        changedProjects = true;
+      }
+      if (po.poNumber && linked && !project.poNumbers.includes(po.poNumber)) {
+        project.poNumbers.push(po.poNumber); changedProjects = true;
+      }
+      if (po.poNumber && !linked && project.poNumbers.includes(po.poNumber)) {
+        project.poNumbers = project.poNumbers.filter(v => v !== po.poNumber); changedProjects = true;
+      }
+    });
+    if (changedProjects) await saveProjects();
+    window.currentEditPO = po;
+    clearDraft();
+    const n = numericPOSequence(po.poNumber);
+    if (n !== null) localStorage.setItem('po_last_num_' + getCompany().id, String(n));
+    populatePONumberDropdown(po.poNumber);
+    showToast(po.isNoPO ? '✅ Saved as No Entry PO. Assign a number later in Summary → Edit.' : '✅ PO saved! PDF is available in PO Summary.');
+    renderSummary(); renderProjects(); renderSuppliers(); updateSupplierDraftHint();
+    renderPOProjectChecklist((po.projectIds || []));
+  } finally {
+    window._poSaving = false;
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save PO'; }
   }
-  if (existIdx >= 0) {
-    if (!confirm('A PO with this number already exists. Overwrite?')) return;
-    po.status = window.savedPOs[existIdx].status || 'saved';
-  }
-  // Only consider a PO saved after the Firebase write succeeds. A failed write must
-  // not silently create an exportable entry in PO Summary.
-  const savedToCloud = await window.savePOToCloud(po);
-  if (savedToCloud === false) {
-    showToast('⚠️ PO not saved. Please check connection and try Save PO again.');
-    return;
-  }
-  if (existIdx >= 0) window.savedPOs[existIdx] = po;
-  else window.savedPOs.push(po);
-  // Save to localStorage as backup AFTER the successful write.
-  localStorage.setItem(getCompany().localKeyPOs, JSON.stringify(window.savedPOs));
-  // Keep existing project PO links as references. Shared POs never become duplicate PO records.
-  normalizeProjects();
-  let changedProjects=false;
-  (window.projects || []).forEach(project=>{
-    const has=(project.poNumbers || []).includes(po.poNumber);
-    const linked=(po.projectIds || []).includes(project.id);
-    if(linked && !has){project.poNumbers.push(po.poNumber);changedProjects=true;}
-    else if(!linked && has){project.poNumbers=project.poNumbers.filter(p=>p!==po.poNumber);changedProjects=true;}
-    if(window.currentEditPO?.poNumber && window.currentEditPO.poNumber!==po.poNumber && project.poNumbers.includes(window.currentEditPO.poNumber)){
-      project.poNumbers=project.poNumbers.filter(p=>p!==window.currentEditPO.poNumber);changedProjects=true;
-    }
-  });
-  if(changedProjects)await saveProjects();
-  window.currentEditPO=po;
-  clearDraft(); const poNumParts = po.poNumber ? po.poNumber.split('-') : [];
-  const poNum = parseInt(poNumParts[poNumParts.length - 1]);
-  if (!isNaN(poNum)) localStorage.setItem('po_last_num_' + getCompany().id, poNum);
-  showToast('✅ PO saved! PDF is now available in PO Summary.');
-  renderSummary();
-  renderProjects();renderSuppliers();updateSupplierDraftHint();
-  renderPOProjectChecklist((po.projectIds || []));
 }
 
 function getPOData() {
@@ -4117,7 +4194,8 @@ function getPOData() {
   const vatAmount = vatOption === 'add' ? (subtotal - _discAmt) * 0.12 : 0;
   const total = (subtotal - _discAmt) + vatAmount;
   return {
-    poNumber: document.getElementById('poNumber').value,
+    poNumber: document.getElementById('poNumber').value.trim(),
+    isNoPO: !document.getElementById('poNumber').value.trim(),
     date: document.getElementById('poDate').value || new Date().toISOString().split('T')[0],
     paymentTerms: document.getElementById('paymentTerms').value,
     deliveryDate: document.getElementById('deliveryDate').value,
@@ -4206,11 +4284,16 @@ window.renderStatusDropdown = function(po, realIdx) {
 window.updatePOStatus = async function(realIdx, newStatus) {
   const po = window.savedPOs[realIdx];
   if (!po) return;
+  const oldStatus = po.status;
   po.status = newStatus;
-  localStorage.setItem(getCompany().localKeyPOs, JSON.stringify(window.savedPOs));
-  try {
-    if (po.poNumber && !po.isNoPO && window.savePOToCloud) await window.savePOToCloud(po);
-  } catch(e) { console.error('updatePOStatus cloud save error:', e); }
+  const saved = await window.savePOToCloud(po);
+  if (!saved) {
+    po.status = oldStatus;
+    renderSummary();
+    showToast('⚠️ Status not updated. Please retry.');
+    return;
+  }
+  persistPOCache();
   const s = PO_STATUSES.find(x => x.key === newStatus) || PO_STATUSES[0];
   showToast('✅ Status updated: ' + s.label);
 };
@@ -4248,6 +4331,8 @@ function renderSummary() {
     .filter(({po}) => !po.company || po.company === getCompany().id);
   // Update global PO-number cards before applying any supplier, text, or status filters.
   updatePONumberReference();
+  const pendingButton = document.getElementById('sum-filter-nopo');
+  if (pendingButton) pendingButton.textContent = '⏳ No Entry PO (' + all.filter(({po}) => po.isNoPO).length + ')';
   const _filter = window._summaryFilter || 'all';
   const supplierSelect = document.getElementById('summarySupplierFilter');
   const searchInput = document.getElementById('summarySearch');
@@ -4285,8 +4370,8 @@ function renderSummary() {
     const m = (p.poNumber || '').match(/(\d+)$/);
     return m ? parseInt(m[1], 10) : -1;
   };
-  records.sort((a,b) => getNum(b.po) - getNum(a.po) ||
-    String(b.po.date || b.po.savedAt || '').localeCompare(String(a.po.date || a.po.savedAt || '')));
+  records.sort((a,b) => String(b.po.savedAt || b.po.date || '').localeCompare(String(a.po.savedAt || a.po.date || '')) ||
+    getNum(b.po) - getNum(a.po));
   const groups = new Map();
   records.forEach(record => {
     const key = summarySupplierKey(record.po);
@@ -4321,16 +4406,17 @@ function renderSummary() {
       </button></td></tr>`;
     const rows = group.records.map(({po, realIdx}) => {
       const poLabel = po.isNoPO ? '⏳ NO-PO ENTRY' : (po.poNumber || '—');
-      const isChk = (window._selectedPOs || new Set()).has(po.poNumber || String(realIdx));
+      const isChk = (window._selectedPOs || new Set()).has(poRecordKey(po));
       const remarks = String(po.internalRemarks || '').trim();
       return `<tr ${collapsed ? 'style="display:none"' : ''}>
-        <td style="text-align:center;width:36px;"><input type="checkbox" class="po-row-check" data-ponum="${escapeSummaryText(po.poNumber || String(realIdx))}" ${isChk ? 'checked' : ''} onchange="window.onPOCheckChange(this)" style="cursor:pointer;width:15px;height:15px;"></td>
-        <td><span class="po-num-tag" style="${po.isNoPO ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : ''}">${escapeSummaryText(poLabel)}</span><div style="max-width:240px;margin-top:4px;">${poProjectSummaryHTML(po)}</div></td>
+        <td style="text-align:center;width:36px;"><input type="checkbox" class="po-row-check" data-poid="${escapeSummaryText(poRecordKey(po))}" ${isChk ? 'checked' : ''} onchange="window.onPOCheckChange(this)" style="cursor:pointer;width:15px;height:15px;"></td>
+        <td><span class="po-num-tag" style="white-space:nowrap;${po.isNoPO ? 'background:#fef3c7;color:#92400e;border:1px solid #f59e0b;' : ''}">${escapeSummaryText(poLabel)}</span><div style="max-width:240px;margin-top:4px;">${poProjectSummaryHTML(po)}</div></td>
         <td style="white-space:nowrap;">${escapeSummaryText(po.date || '—')}</td>
         <td><div class="summary-remarks${remarks ? '' : ' empty'}" title="${escapeSummaryText(remarks)}">${remarks ? escapeSummaryText(remarks) : 'No remarks'}</div></td>
         <td style="font-family:'DM Mono',monospace;font-weight:500;white-space:nowrap;">₱${formatNum(po.total)}</td>
         <td>${window.renderStatusDropdown(po, realIdx)}</td>
         <td><div class="summary-actions">
+          ${po.isNoPO ? `<button class="btn btn-sm" data-action="assign-po-number" data-idx="${realIdx}" style="background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;" title="Open this saved PO and fill the next suggested number">🔢 Assign #</button>` : ''}
           <button class="btn btn-secondary btn-sm" data-action="edit-po" data-idx="${realIdx}">✏️ Edit</button>
           <button class="btn btn-sm btn-outline" data-action="preview-po" data-idx="${realIdx}">👁 View</button>
           <button class="btn btn-primary btn-sm" data-action="pdf-saved-po" data-idx="${realIdx}" title="Export this saved PO as PDF">📄 PDF</button>
@@ -4427,8 +4513,11 @@ window.confirmDeletePO = async function() {
   if (i === null || i === undefined) return;
   const po = window.savedPOs[i];
   if (!po) return;
-  const poNumber = po.poNumber;
-  const isNoPO = po.isNoPO;
+  // Delete its real document even when this is a No Entry PO.
+  if (!await window.deletePOFromCloud(po)) {
+    window._pendingDeleteIdx = null;
+    return;
+  }
 
   // Move to trash
   po.deletedAt = new Date().toISOString();
@@ -4440,7 +4529,6 @@ window.confirmDeletePO = async function() {
   // Remove from active list
   window.savedPOs.splice(i, 1);
   localStorage.setItem(getCompany().localKeyPOs, JSON.stringify(window.savedPOs));
-  if (poNumber && !isNoPO) await window.deletePOFromCloud(poNumber);
   await window.saveTrashToCloud();
   renderSummary();
   window.renderTrash();
@@ -4514,10 +4602,10 @@ window.restorePO = async function(trashId) {
   delete po.deletedAt;
   delete po._trashId;
 
+  const restored = await window.savePOToCloud(po);
+  if (!restored) { showToast('⚠️ Could not restore PO to Firebase.'); return; }
   window.savedPOs.push(po);
-  localStorage.setItem(getCompany().localKeyPOs, JSON.stringify(window.savedPOs));
-  if (po.poNumber && !po.isNoPO && window.savePOToCloud) await window.savePOToCloud(po);
-
+  persistPOCache();
   window.trashedPOs.splice(idx, 1);
   localStorage.setItem(getCompany().localKeyTrash, JSON.stringify(window.trashedPOs));
   await window.saveTrashToCloud();
@@ -4566,7 +4654,7 @@ function setPOPreviewMode(kind) {
 function previewSavedPO(i) {
   const po = savedPOByIndex(i);
   if (!po) { showToast('⚠️ Saved PO not found. Refresh PO Summary.'); return; }
-  window._poPreviewContext = { kind: 'saved', company: getCompany().id, poNumber: po.poNumber };
+  window._poPreviewContext = { kind: 'saved', company: getCompany().id, recordId: poRecordKey(po) };
   window._currentPreviewPO = po;
   setPOPreviewMode('saved');
   document.getElementById('previewContent').innerHTML = buildPreviewHTML(po);
@@ -4576,7 +4664,7 @@ function getSavedPOForPreviewExport() {
   const ctx = window._poPreviewContext;
   if (!ctx || ctx.kind !== 'saved' || ctx.company !== getCompany().id) return null;
   return (window.savedPOs || []).find(po =>
-    isPOFromCurrentCompany(po) && po.poNumber === ctx.poNumber) || null;
+    isPOFromCurrentCompany(po) && poRecordKey(po) === ctx.recordId) || null;
 }
 function exportSavedPO(i) {
   const po = savedPOByIndex(i);
@@ -4625,7 +4713,7 @@ function closePreview() {
 
 function getPOFilename(po) {
   const supplier = (po.supplier?.name || 'Supplier').replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_').substring(0, 30);
-  const poNum = (po.poNumber || 'PO').replace(/[^a-zA-Z0-9\-]/g, '');
+  const poNum = (po.isNoPO ? 'NO-PO-ENTRY' : (po.poNumber || 'PO')).replace(/[^a-zA-Z0-9\-]/g, '');
   return `${supplier}_${poNum}`;
 }
 
@@ -4881,6 +4969,11 @@ function setupEventDelegation() {
     switch(action) {
       // PO Summary
       case 'edit-po': loadPOEdit(idx); break;
+      case 'assign-po-number':
+        loadPOEdit(idx);
+        window.useSuggestedPONumber();
+        showToast('📝 Suggested number filled. Review the PO, then click Save PO.');
+        break;
       case 'preview-po': previewSavedPO(idx); break;
       case 'pdf-saved-po': exportSavedPO(idx); break;
       case 'delete-po': deletePO(idx); break;
@@ -5108,7 +5201,7 @@ window.exportSummaryToPDF = function() {
   container.innerHTML = '';
   const rowSel = window._selectedPOs || new Set();
   allPos.forEach(function(po, i) {
-    var isChecked = rowSel.size > 0 ? rowSel.has(po.poNumber || '') : true;
+    var isChecked = rowSel.size > 0 ? rowSel.has(poRecordKey(po)) : true;
     var poLabel = po.isNoPO ? 'NO-PO ENTRY' : (po.poNumber || '—');
     var sup = po.supplier ? (po.supplier.name || '—') : '—';
     var tot = (po.total || 0).toLocaleString('en-PH', {minimumFractionDigits:2});
@@ -5252,7 +5345,7 @@ window.exportPOsToExcel = function() {
   container.innerHTML = '';
   const rowSel = window._selectedPOs || new Set();
   allPos.forEach(function(po, i) {
-    var isChecked = rowSel.size > 0 ? rowSel.has(po.poNumber || '') : true;
+    var isChecked = rowSel.size > 0 ? rowSel.has(poRecordKey(po)) : true;
     var poLabel = po.isNoPO ? 'NO-PO ENTRY' : (po.poNumber || '—');
     var sup = po.supplier ? (po.supplier.name || '—') : '—';
     var tot = (po.total || 0).toLocaleString('en-PH', {minimumFractionDigits:2});
